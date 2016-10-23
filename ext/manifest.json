@@ -1,0 +1,39 @@
+{
+  "name": "KissAutoplay",
+  "version": "1.0.1",
+  "manifest_version": 2,
+  "description": "Autoplay KissAnime episodes in true fullscreen video",
+  "homepage_url": "https://www.reddit.com/r/KissAutoplay",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "default_locale": "en",
+  "page_action": {
+    "default_icon": "icons/icon19.png",
+    "default_title": "KissAutoplay",
+    "default_popup": "src/browser_action/browser_action.html"
+  },
+  "permissions": [
+    "storage", "declarativeContent"
+  ],
+  "background":
+  {
+      "scripts": ["src/bg/background.js"],
+	  "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://kissanime.to/Anime/*", "http://kisscartoon.me/Cartoon/*"
+      ],
+	  "exclude_matches": [
+        "http://kissanime.to/Anime/*/*", "http://kisscartoon.me/Cartoon/*/*"
+      ],
+      "js": [
+        "src/external/afterglow.min.js", "src/inject/inject.js"
+      ]
+    }
+  ]
+}

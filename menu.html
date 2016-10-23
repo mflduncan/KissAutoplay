@@ -1,0 +1,101 @@
+<html>
+<head>
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+	
+	<style>
+		body{
+			font-family: sans-serif;
+		}
+		.main-content{
+			width: 200px;
+		}
+		.powerContainer{
+			text-align: center;
+			padding: 0px;
+			background-color: #FFF;
+		}
+		.power{
+			color: #0FF000;
+			cursor: pointer;
+		}
+		.divider{
+			text-align: center;
+			background-color: #eee;
+		}
+		.block{
+			height: 30px;
+		}
+		.block label{
+			display: inline-block;
+			width: 70px;
+			line-height: 30px;
+		}
+		.secondsInput{
+			width: 50px;
+		}
+		
+		.options{
+			text-align: center;
+		}
+		
+		.reddit{
+			color: #FFA500;
+			text-decoration: none;
+		}
+		
+		.redditContainer{
+			text-align: center;
+			padding: 0px;
+			background-color: #FFF;
+		}
+	</style>
+</head>
+<body>
+	 <div class="main-content">
+		<div class="powerContainer">
+			<a id='powerButton' class="power fa fa-power-off fa-4x" onclick="togglePower()"></a>
+		</div>
+		<div class="divider">
+			<p>options</p>
+		</div>
+		<div class="options">
+			<div class="block">
+				<label>skip first</label>
+				<input class="secondsInput"type="number" name="skipFirst">
+				<label>seconds</label>
+			</div>
+			<div class="block">
+				<label>skip last</label>
+				<input class="secondsInput" type="number" name="skipLast">
+				<label>seconds</label>
+			</div>
+		</div>
+		<div class="divider">
+			<p>contact</p>
+		</div>
+		<table>
+			<tr>
+				<td><a href="http://www.reddit.com/r/KissAutoplay" class="reddit fa fa-reddit-square fa-5x"></a></td>
+				<td><p>post questions or comments to /r/KissAutoplay</p></td>
+			</tr>
+		</table>
+	 </div>
+	 <script>
+		var power = true;
+		function togglePower()
+		{
+			var powerButton = document.getElementById('powerButton');
+			if(power)
+			{
+				powerButton.style.color = "gray";
+				power = false;
+			}
+			else
+			{
+				powerButton.style.color = "#0ff000";
+				power = true;
+			}
+		}
+	</script>
+</body>
+</html>

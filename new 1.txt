@@ -1,0 +1,201 @@
+
+var nextVid = null;
+
+chrome.extension.sendMessage({}, function(response) {
+	var readyStateCheckInterval = setInterval(function() {
+	if (document.readyState === "complete") {
+		clearInterval(readyStateCheckInterval);
+
+		// ----------------------------------------------------------
+		// This part of the script triggers when page is done loading
+		console.log("Hello. This message was sent from scripts/inject.js");
+		// ----------------------------------------------------------
+
+		
+		var vid = document.getElementById("my_video_1_html5_api");
+
+		vid.addEventListener('timeupdate', checkTime);
+		vid.addEventListener('canplaythrough', loadNext);
+
+	}
+	}, 10);
+});
+
+function checkTime()
+{
+	if(this.currentTime == this.duration)
+	{
+		var nxt = document.getElementById('btnNext');
+		var nxtLink = nxt.parentElement.href;
+		//window.location.href = nxtLink;
+		playNext(this);
+	}
+}
+
+function extractInfoFromSource(source)
+{
+    var e = /video.*src='(.*?)'/g;
+    var match = e.exec(source);
+    vidSource = match[1];
+	console.log(vidSource);
+	
+	var nxt = document.getElementById('btnNext');
+	nextLink = nxt.parentElement.href;
+	console.log(nextLink);
+}
+/*function createPlayer()
+{
+	var p = document.createElement('video');
+	p.setAttribute("class", "afterglow");
+	p.id = 'lightbox_player';
+	p.width = 640;
+	p.height = 480;
+	//p.autoplay = true;
+	
+	var s = document.createElement('source');
+	s.type = 'video/mp4';
+	s.src = vidSource;
+	
+	//document.getElementsByClassName('barContent')[0].appendChild(p);
+	p.appendChild(s);
+	document.body.appendChild(p);
+	
+	var script = document.createElement('script');
+	script.textContent = "afterglow.init()";
+	document.body.appendChild(script);
+	script.remove();
+	/*p.onload=function()
+	{
+		var ag = document.createElement('script');
+		ag.setAttribute("type", "text/javascript");
+		ag.setAttribute("src", "//cdn.jsdelivr.net/afterglow/latest/afterglow.min.js");
+		document.head.appendChild(ag);
+	}
+	//p.appendChild(s);
+	
+	//console.log(afterglow.getPlayer('lightbox_player').duration());
+}*/
+function playNext(videoObj)
+{
+	videoObj.src = "https://redirector.googlevideo.com/videoplayback?requiressl=yes&id=a9b8e246778219f4&itag=22&source=webdrive&ttl=transient&app=texmex&ip=2001:19f0:6000:9ad4:5400:ff:fe20:66ec&ipbits=32&expire=1470109255&sparams=requiressl,id,itag,source,ttl,ip,ipbits,expire&signature=BC09A1F4CFE1FB9DF56F2C21713C65A71A001728.B19485403ECCE5F582650554B2FC9D6773BD72D8&key=ck2&mm=30&mn=sn-a5m7ln7s&ms=nxu&mt=1470094436&mv=u&nh=IgpwcjAyLmxheDAyKgkxMjcuMC4wLjE&pl=38&sc=yes";
+	console.log("Should have changed videos");
+}
+
+function loadNext(videoObj)
+{
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function()
+	{
+		if(xhttp.readyState == 4 && xhttp.status == 200)
+		{
+			console.log(xhttp.responseText);			
+		}			
+	}
+	var nxt = document.getElementById('btnNext');
+	var nxtLink = nxt.parentElement.href;
+	nxtLink = nxtLink.substr(nxtLink.lastIndexOf("/") + 1);
+	console.log(nxtLink);
+	
+	xhttp.open("GET", nxtLink, true);
+	xhttp.send();
+	console.log("Request started");
+}
+
+function addLityHandlers()
+{
+/*$( lightbox ).on( "lity:open", function() { //runs when lightbox on
+		var iframes = document.getElementsByTagName("iframe");
+		console.log(iframes);
+		var lityFrame;
+		for( i = 0; i < iframes.length; i++)
+		{
+			if(iframes[i].offsetParent.className == "lity-container")
+			{
+				lityFrame = iframes[i];
+			}
+		}
+		console.log(lityFrame);
+		/*$( lityFrame ).on( "onload", function() //runs when the iframe is loaded
+		{
+			console.log("iframe loaded. checking for video");
+			vidElem = document.getElementsByTagName("video")[0]; //find the video element since it exists now
+			if(vidElem != null)
+			{
+				console.log("found the video");
+				vidElem.addEventListener('canplaythrough', loadNext);
+				vidElem.addEventListener('timeupdate', function()
+				{
+					if(this.currentTime == this.duration) //if at the end of the video
+					{
+						playNext();
+					}
+				});
+			}
+		});
+	});*/
+	
+	$( lightbox ).on( "lity:ready", function() {
+		console.log("lightbox is ready");
+		var lityFrames = document.getElementsByClassName('lity-iframe-container');
+		if(lityFrames.length > 0)
+		{ 
+			var lityFrame = lityFrames[0].childNodes[0];
+			console.log("found the iframe");
+			if(lityFrame.contentWindow.document.readyState == "complete") //if the iframe is already loaded
+			{
+				console.log("iframe already loaded");
+				setTimeout(function()
+				{
+					addVideoHandlers(lityFrame);
+				}, 3000);
+				//addVideoHandlers(lityFrame);
+			}
+			else
+			{
+				console.log("iframe not loaded yet");
+				$( lityFrame ).on( "onload", function() //runs when the iframe is loaded
+				{
+					setTimeout(function()
+					{
+						addVideoHandlers(lityFrame);
+					}, 3000);
+				});
+			}
+		}
+		else
+		{
+			console.log("got nothing");
+		}
+	});
+	
+	$( lightbox ).on( "lity:open", function() {
+		console.log("lightbox is open");
+	});
+}
+
+function addVideoHandlers(lityFrame)
+{
+	console.log("adding video handlers");	
+	//vidElem = lityFrame.contentWindow.document.getElementById('lightbox_video'); //find the video element since it exists now
+	vidElems = lityFrame.contentWindow.document.getElementsByTagName('video');
+	console.log(vidElems);
+	if(vidElems.length != null)
+	{
+		console.log("gotcha fucker!");
+		var vidElem = vidElems[0];
+		console.log("found the video");
+		vidElem.addEventListener('canplaythrough', loadNext);
+		vidElem.addEventListener('timeupdate', function()
+		{
+			if(this.currentTime == this.duration) //if at the end of the video
+			{
+				playNext();
+			}
+		});
+	}
+	else
+	{
+		console.log("couldn't find the video. what the fuck, man?");
+		//console.log(lityFrame.contentWindow.document.body.innerHTML);
+	}
+}
