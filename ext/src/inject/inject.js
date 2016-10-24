@@ -21,6 +21,7 @@
 */
 
 var nextLink = null;
+var prevLink = null;
 var vidSource = null;
 var changing = false;
 var nextVideoLoaded = false;
@@ -92,13 +93,25 @@ function createVideo()
 	document.body.appendChild(btn);
 }
 
+// Description: Called when an episode link is clicked. Just loads video right now.
+function clickVideoHandler()
+{
+	loadVideo(this.href, function(){
+		document.getElementById('video_source').src = vidSource;
+		document.getElementById('launch_video').click();
+		addVideoHandler();
+		changeSource(vidSource);
+	}); //load the video of the link clicked on
+}
+
 // Description: loads the next video into the player
 // Preconditions: video player must already be open!
-function playNext()
+
+function loadVideo(url, callback)
 {
 	//console.log("Loading next video...");
 	//lightbox("<p>Loading...</p>");
-	var i = createIFrame(nextLink);
+	var i = createIFrame(url);
 	var count = 0;
 	//i.onload = function() 
 	var interval = setInterval(function()
@@ -111,65 +124,21 @@ function playNext()
 			//changeSource(vidSource); //change the video in the player
 			nextVideoLoaded = true;
 			clearInterval(interval);
+			if(callback != null)
+			{
+				callback();
+			}
 		}
 	}, 50);
 	//console.log("end of loadVideo");
 }
-
-// Description: opens a lightbox and plays a video inside
-function loadVideo(url)
+function loadNextVideo()
 {
-	//console.log("Loading next video...");
-	//lightbox("<p>Loading...</p>");
-	var i = createIFrame(url);
-	var count = 0;
-	//i.onload = function() 
-	var interval = setInterval(function()
-	{ 
-		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
-		{
-			//console.log("skipping that other shit...");
-			getVideoFromFrame(i);
-			i.parentNode.removeChild(i); 
-			//changeSource(vidSource); //launch the video in the lightbox
-			//console.log("changing source");
-			//changeSource(vidSource);
-
-			document.getElementById('video_source').src = vidSource;
-			document.getElementById('launch_video').click();
-			addVideoHandler();
-			clearInterval(interval);
-		}
-	}, 50);
-	//console.log("end of loadVideo");
+	loadVideo(nextLink, null);
 }
-
-// Description: opens a lightbox and plays a video inside
-function loadNextVideo(url)
+function loadPrevVideo()
 {
-	//console.log("Loading next video...");
-	//lightbox("<p>Loading...</p>");
-	var i = createIFrame(url);
-	var count = 0;
-	//i.onload = function() 
-	var interval = setInterval(function()
-	{ 
-		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
-		{
-			//console.log("skipping that other shit...");
-			getVideoFromFrame(i);
-			i.parentNode.removeChild(i); 
-			//changeSource(vidSource); //launch the video in the lightbox
-			//console.log("changing source");
-			//changeSource(vidSource);
-
-			document.getElementById('video_source').src = vidSource;
-			document.getElementById('launch_video').click();
-			addVideoHandler();
-			clearInterval(interval);
-		}
-	}, 50);
-	//console.log("end of loadVideo");
+	loadVideo(prevLink, null);
 }
 
 
@@ -189,12 +158,6 @@ function addEpisodeHandlers()
 		rows[i].cells[0].childNodes[1].setAttribute( "onclick", "return false;" ); //so it doesn't navigate to the href
 		rows[i].cells[0].childNodes[1].addEventListener( "click", clickVideoHandler); //so it is sent to launch video after click
 	}	
-}
-
-// Description: Called when an episode link is clicked. Just loads video right now.
-function clickVideoHandler()
-{
-	loadVideo(this.href); //load the video of the link clicked on
 }
 
 // Description: Creates the IFrame used to grab the video source
@@ -236,6 +199,17 @@ function getVideoFromFrame(i)
 	{
 		nextLink = null;
 	}
+	
+	var prev = i.contentWindow.document.getElementById('btnPrevious');
+	if(prev)
+	{
+		prevLink = prev.parentElement.href;
+		//console.log(nextLink);
+	}
+	else
+	{
+		prevLink = null;
+	}
 }
 
 // Description: Adds the handler so the player knows when to switch to the next video
@@ -268,7 +242,7 @@ function addVideoHandler()
 						changing = true;
 						nextVideoLoading = false;
 						nextVideoLoaded = false;
-						//playNext();
+						//loadNextVideo();
 						changeSource(vidSource);
 						//console.log("at the end, buddy");
 						//console.log(duration - currTime);
@@ -277,7 +251,7 @@ function addVideoHandler()
 					{
 						nextVideoLoading = true;
 						//console.log("loading the next one, buddy");
-						playNext();
+						loadNextVideo();
 					}
 					else if(changing && duration - currTime > items.skipLast) //if it is done changing, skip the first amount the user specifies
 					{
@@ -303,7 +277,7 @@ function addSkipHandlers()
 {
 	document.addEventListener("ka-playNext", function() { 
 		nextVideoLoaded = false;
-		playNext();
+		loadNextVideo();
 		var interval = setInterval(function()
 		{ 
 			if(nextVideoLoaded)
