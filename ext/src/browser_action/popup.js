@@ -37,6 +37,12 @@ function getValues()
 		var skinSelect = document.getElementById("skinSelect");
 		skinSelect.value = items.dataSkin;
 	});
+	
+	//Load the value of the skipButtonsEnabled
+	chrome.storage.local.get({skipButtonsEnabled: true}, function(items) {
+		var skipCheckbox = document.getElementById("skipButtonsEnabled");
+		skipCheckbox.checked = items.skipButtonsEnabled;
+	});
 }
 
 function addPowerListener()
@@ -44,6 +50,7 @@ function addPowerListener()
 	var powerButton = document.getElementById('powerButton');
 	powerButton.addEventListener("click", function()
 	{
+		displayRefreshNotification();
 		if(power)
 		{
 			powerButton.style.color = "gray";
@@ -74,7 +81,14 @@ function addInputListener()
 	
 	var skinSelect = document.getElementById("skinSelect");
 	skinSelect.addEventListener("input", function(){
+		displayRefreshNotification();
 		chrome.storage.local.set({'dataSkin': skinSelect.value}, null);
+	});
+	
+	var skipCheckbox = document.getElementById("skipButtonsEnabled");
+	skipCheckbox.addEventListener("click", function(){
+		displayRefreshNotification();
+		chrome.storage.local.set({'skipButtonsEnabled': skipCheckbox.checked}, null);
 	});
 }
 
@@ -85,4 +99,10 @@ function addRedditListener()
 		var newURL = "http://www.reddit.com/r/KissAutoplay";
         chrome.tabs.create({ url: newURL });
 	});
+}
+
+function displayRefreshNotification()
+{
+	var elem = document.getElementById('refreshNotification');
+	elem.className = "notification";
 }

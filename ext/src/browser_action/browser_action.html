@@ -26,6 +26,14 @@
 			text-align: center;
 			background-color: #eee;
 		}
+		.notification{
+			text-align: center;
+			background-color: #ffe066;
+			padding: 10px
+		}
+		.notificationHidden{
+			display: none;
+		}
 		.block{
 			height: 30px;
 		}
@@ -42,6 +50,13 @@
 			text-align: center;
 		}
 		
+		.checkForm{
+			margin-top: 6px;
+		}
+		.checkForm input{
+			vertical-align: middle;
+		}
+		
 		.contact{
 			text-align: center;
 		}
@@ -55,10 +70,14 @@
 			padding: 0px;
 			background-color: #FFF;
 		}
+		
 	</style>
 </head>
 <body>
 	 <div class="main-content">
+		 <div id='refreshNotification' class="notificationHidden">
+				<label>please refresh to update settings</label>
+		</div>
 		<div class="powerContainer">
 			<i id='powerButton' class="power fa fa-power-off fa-5x"></i>
 		</div>
@@ -88,6 +107,9 @@
 				  <option value="light">light</option>
 				  <option value="glass">glass</option>
 				</select>
+			</div>
+			<div class="checkForm">
+				<label>back/next buttons: <input id="skipButtonsEnabled" type="checkbox"></label>
 			</div>
 		</div>
 		<div class="divider">

@@ -9,6 +9,7 @@
 		- text overlay to relay messages (cant load, episode name, etc)
 		- different times for different shows
 		- myanimelist reccomendations
+		- skip instantly-- don't wait
 		
 	Done:
 		- dont run on pages other than episode list 
@@ -250,7 +251,13 @@ function addVideoHandler()
 			chrome.storage.local.get({skipFirst: 0}, function(i) {
 							player.currentTime(i.skipFirst);
 						});
-			
+			chrome.storage.local.get({skipButtonsEnabled: true}, function(i) {
+							if(i.skipButtonsEnabled == false)
+							{
+								hideSkipButtons();
+							}
+						});
+						
 			player.on('timeupdate', function()
 			{
 				var duration = this.duration();
@@ -307,4 +314,11 @@ function addSkipHandlers()
 			}
 		}, 500);
 	});		
+}
+
+function hideSkipButtons()
+{
+	var player = afterglow.getPlayer("lightbox_video");
+	player.controlBar.NextVideoButton.el_.classList.add("vjs-hidden");
+	player.controlBar.PrevVideoButton.el_.classList.add("vjs-hidden");
 }
