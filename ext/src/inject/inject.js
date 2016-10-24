@@ -277,16 +277,18 @@ function addSkipHandlers()
 {
 	document.addEventListener("ka-playNext", function() { 
 		nextVideoLoaded = false;
-		loadNextVideo();
-		var interval = setInterval(function()
-		{ 
-			if(nextVideoLoaded)
-			{
-				clearInterval(interval);
-				changeSource(vidSource);
-				changing = true;
-			}
-		}, 500);
+		loadVideo(nextLink, function(){
+			changeSource(vidSource);
+			changing = true;
+		});
+	});	
+
+	document.addEventListener("ka-playPrev", function() { 
+		nextVideoLoaded = false;
+		loadVideo(prevLink, function(){
+			changeSource(vidSource);
+			changing = true;
+		});
 	});		
 }
 
