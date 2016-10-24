@@ -49,7 +49,7 @@ chrome.extension.sendMessage({}, function(response) {
 				
 				//fire the event so the Afterglow player looks for the video
 				var e = document.createEvent("CustomEvent");
-				e.initEvent("startAfterglow", true, true);
+				e.initEvent("ka-started", true, true);
 				window.document.dispatchEvent(e);
 			}
 		});
@@ -289,4 +289,13 @@ function addVideoHandler()
 			clearInterval(interval);
 		}
 	}, 500); //run every half second
+}
+
+addNextPrevHandlers()
+{
+	document.addEventListener("ka-playNext", function() { 
+		playNext();
+		changeSource(vidSource);
+	});	
+	
 }
