@@ -46,6 +46,7 @@ chrome.extension.sendMessage({}, function(response) {
 				console.log("KissAutoplay now running");
 				createVideo(); //create the elements needed on the page
 				addEpisodeHandlers(); //add handlers so the links don't change the page
+				addSkipHandlers(); //add handlers for the skip button in player
 				
 				//fire the event so the Afterglow player looks for the video
 				var e = document.createEvent("CustomEvent");
@@ -291,11 +292,19 @@ function addVideoHandler()
 	}, 500); //run every half second
 }
 
-addNextPrevHandlers()
+function addSkipHandlers()
 {
 	document.addEventListener("ka-playNext", function() { 
+		nextVideoLoaded = false;
 		playNext();
-		changeSource(vidSource);
-	});	
-	
+		var interval = setInterval(function()
+		{ 
+			if(nextVideoLoaded)
+			{
+				clearInterval(interval);
+				changeSource(vidSource);
+				changing = true;
+			}
+		}, 500);
+	});		
 }
