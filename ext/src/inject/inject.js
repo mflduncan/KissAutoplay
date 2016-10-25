@@ -5,10 +5,13 @@
 		
 	Possible updates:
 		- change video quality button
-		- text overlay to relay messages (cant load, episode name, etc)
-		- different times for different shows
-		- myanimelist reccomendations
 		
+		
+	Decided against:
+		- text overlay to relay messages (cant load, episode name, etc) because it doesn't look good
+		- myanimelist reccomendations because felt too unrelated to overall goal
+		- different times for different shows because would overcomplicate
+			*possibly a this show/global tab in the menu?
 		
 	Done:
 		- loading screen while video loads
