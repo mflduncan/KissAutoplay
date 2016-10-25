@@ -4,14 +4,15 @@
 		- retry on error
 		
 	Possible updates:
-		- loading screen while video loads
 		- change video quality button
 		- text overlay to relay messages (cant load, episode name, etc)
 		- different times for different shows
 		- myanimelist reccomendations
-		- skip instantly-- don't wait
+		
 		
 	Done:
+		- loading screen while video loads
+		- skip instantly-- don't wait
 		- dont run on pages other than episode list 
 		- fix network error (I think done)
 		- add other kiss websites 
@@ -24,6 +25,7 @@ var nextLink = null;
 var prevLink = null;
 var vidSource = null;
 var changing = false;
+var skipping = false;
 var nextVideoLoaded = false;
 var nextVideoLoading = false;
 
@@ -60,6 +62,10 @@ chrome.extension.sendMessage({}, function(response) {
 	}, 10);
 });
 
+
+/**************************************
+			Page Setup
+**************************************/
 // Description: Creates the video and anchor elements necessary for Aferglow and adds them to the document. 
 function createVideo()
 {
@@ -74,12 +80,7 @@ function createVideo()
 				vid.setAttribute( "data-skin", i.dataSkin );
 			}
 	});
-	
-	//<source>
-	/*var src = document.createElement("source");
-	src.setAttribute( "id", "video_source");
-	src.setAttribute( "type", "video/mp4");*/
-	
+		
 	//<a>
 	var btn = document.createElement("a");
 	btn.style.display = 'none';
@@ -88,71 +89,8 @@ function createVideo()
 	btn.setAttribute( "class", "afterglow" );
 	
 	//Add to document
-	//vid.appendChild(src);
 	document.body.appendChild(vid);
 	document.body.appendChild(btn);
-}
-
-// Description: Called when an episode link is clicked. Just loads video right now.
-function clickVideoHandler()
-{
-	document.getElementById('launch_video').click();
-	addVideoHandler(function(){ //run this code while it waits to get video source
-		player = afterglow.getPlayer("lightbox_video");
-		elem = player.el_;
-		player.play(); //get rid of big play button
-		elem.classList.add('vjs-seeking'); //show loading circle	
-	});
-	loadVideo(this.href, function(){
-		//document.getElementById('video_source').src = vidSource;
-		//document.getElementById('launch_video').click();
-		elem.classList.remove('vjs-seeking');
-		changeSource(vidSource);
-	}); //load the video of the link clicked on
-}
-
-// Description: loads the next video into the player
-// Preconditions: video player must already be open!
-
-function loadVideo(url, callback)
-{
-	//console.log("Loading next video...");
-	//lightbox("<p>Loading...</p>");
-	var i = createIFrame(url);
-	var count = 0;
-	//i.onload = function() 
-	var interval = setInterval(function()
-	{ 
-		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
-		{
-			//console.log("skipping that other shit...");
-			getVideoFromFrame(i);
-			//i.parentNode.removeChild(i); 
-			//changeSource(vidSource); //change the video in the player
-			nextVideoLoaded = true;
-			clearInterval(interval);
-			if(callback != null)
-			{
-				callback();
-			}
-		}
-	}, 50);
-	//console.log("end of loadVideo");
-}
-function loadNextVideo()
-{
-	loadVideo(nextLink, null);
-}
-function loadPrevVideo()
-{
-	loadVideo(prevLink, null);
-}
-
-
-
-function changeSource(src)
-{
-	afterglow.getPlayer("lightbox_video").src(src);
 }
 
 // Description: Overrides the behavior of the links to episodes
@@ -167,57 +105,25 @@ function addEpisodeHandlers()
 	}	
 }
 
-// Description: Creates the IFrame used to grab the video source
-function createIFrame(url)
+// Description: Called when an episode link is clicked. Launches lightbox video, adds video  and loads video
+function clickVideoHandler()
 {
-	var i = document.getElementById("hiddenDisplay");
-	if(i)
-	{
-		i.src = url;
-		return i;
-	}
-	else
-	{
-		i = document.createElement('iframe');
-		i.id = 'hiddenDisplay';
-		i.style.display = 'none';
-		i.src = url;
-		document.body.appendChild(i);	
-		return i;
-	}
+	document.getElementById('launch_video').click();
+	addVideoHandler(function(){ //run this code while it waits to get video source
+		player = afterglow.getPlayer("lightbox_video");
+		elem = player.el_;
+		player.play(); //get rid of big play button
+		elem.classList.add('vjs-seeking'); //show loading circle	
+	});
+	loadVideo(this.href, function(){
+		changeSource(vidSource);
+	}); //load the video of the link clicked on
 }
 
-// Description: Grabs the video source from the episode page 
-function getVideoFromFrame(i)
-{
-	var vid = i.contentWindow.document.getElementById("my_video_1_html5_api");
-	vid.pause();
-	vidSource = vid.src;
-	//console.log(vidSource);
-	vid.parentElement.removeChild(vid);
-	
-	var nxt = i.contentWindow.document.getElementById('btnNext');
-	if(nxt)
-	{
-		nextLink = nxt.parentElement.href;
-		//console.log(nextLink);
-	}
-	else
-	{
-		nextLink = null;
-	}
-	
-	var prev = i.contentWindow.document.getElementById('btnPrevious');
-	if(prev)
-	{
-		prevLink = prev.parentElement.href;
-		//console.log(nextLink);
-	}
-	else
-	{
-		prevLink = null;
-	}
-}
+
+/**************************************
+			Player Setup
+**************************************/
 
 // Description: Adds the handler so the player knows when to switch to the next video
 function addVideoHandler(callback)
@@ -284,40 +190,153 @@ function addVideoHandler(callback)
 	}
 }
 
+// Description: Adds handlers for the skip and previous buttons in the video
 function addSkipHandlers()
 {
 	document.addEventListener("ka-playNext", function() { 
-		if(nextLink != null)
+		if(nextLink != null && !skipping)
 		{
+			skipping = true;
 			nextVideoLoaded = false;
 			unloadVideo();
 			loadVideo(nextLink, function(){
 				changeSource(vidSource);
 				changing = true;
+				skipping = false;
 			});
 		}
 	});	
 
 	document.addEventListener("ka-playPrev", function() { 
-		if(prevLink != null)
+		if(prevLink != null && !skipping)
 		{
+			skipping = true;
 			nextVideoLoaded = false;
 			unloadVideo();
 			loadVideo(prevLink, function(){
 				changeSource(vidSource);
 				changing = true;
+				skipping = false;
 			});
 		}
 	});		
 }
 
+// Description: Hides the skip and previous buttons
 function hideSkipButtons()
 {
 	var player = afterglow.getPlayer("lightbox_video");
 	player.controlBar.NextVideoButton.el_.classList.add("vjs-hidden");
 	player.controlBar.PrevVideoButton.el_.classList.add("vjs-hidden");
 }
+// Description: loads the next video into the player
+// Preconditions: video player must already be open!
 
+
+/**************************************
+			Data fetching
+**************************************/
+
+// Description: Grabs the source of the next episode and calls callback
+function loadVideo(url, callback)
+{
+	//console.log("Loading next video...");
+	//lightbox("<p>Loading...</p>");
+	var i = createIFrame(url);
+	var count = 0;
+	//i.onload = function() 
+	var interval = setInterval(function()
+	{ 
+		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
+		{
+			//console.log("skipping that other shit...");
+			getVideoFromFrame(i);
+			//i.parentNode.removeChild(i); 
+			//changeSource(vidSource); //change the video in the player
+			nextVideoLoaded = true;
+			clearInterval(interval);
+			if(callback != null)
+			{
+				callback();
+			}
+		}
+	}, 50);
+	//console.log("end of loadVideo");
+}
+function loadNextVideo()
+{
+	loadVideo(nextLink, null);
+}
+function loadPrevVideo()
+{
+	loadVideo(prevLink, null);
+}
+
+// Description: Creates the IFrame used to grab the video source
+function createIFrame(url)
+{
+	var i = document.getElementById("hiddenDisplay");
+	if(i)
+	{
+		i.src = url;
+		return i;
+	}
+	else
+	{
+		i = document.createElement('iframe');
+		i.id = 'hiddenDisplay';
+		i.style.display = 'none';
+		i.src = url;
+		document.body.appendChild(i);	
+		return i;
+	}
+}
+
+// Description: Grabs the video source from the episode page 
+function getVideoFromFrame(i)
+{
+	var vid = i.contentWindow.document.getElementById("my_video_1_html5_api");
+	vid.pause();
+	vidSource = vid.src;
+	//console.log(vidSource);
+	vid.parentElement.removeChild(vid);
+	
+	var nxt = i.contentWindow.document.getElementById('btnNext');
+	if(nxt)
+	{
+		nextLink = nxt.parentElement.href;
+		//console.log(nextLink);
+	}
+	else
+	{
+		nextLink = null;
+	}
+	
+	var prev = i.contentWindow.document.getElementById('btnPrevious');
+	if(prev)
+	{
+		prevLink = prev.parentElement.href;
+		//console.log(nextLink);
+	}
+	else
+	{
+		prevLink = null;
+	}
+}
+
+
+/**************************************
+			Video Changing
+**************************************/
+
+//Description: loads the source into the player and beings playing
+function changeSource(src)
+{
+	elem.classList.remove('vjs-seeking'); //in case we were on a loading screen (will come back if actualy loading still needs to be done)
+	afterglow.getPlayer("lightbox_video").src(src);
+}
+
+// Description: Stops the video. Displays black with a loading circle. 
 function unloadVideo()
 {
 	player = afterglow.getPlayer("lightbox_video");
