@@ -1,7 +1,8 @@
 /*
 	To do:
-		- comment and clean code
 		- retry on error
+		- unload video when taking a long time (>30s) to load
+			*rewrite video handlers to include callbacks
 		
 	Possible updates:
 		- change video quality button
@@ -166,8 +167,7 @@ function addVideoHandler(callback)
 					else if(duration > 0 && duration - currTime - 30 <= items.skipLast && !changing && !nextVideoLoading) //run 30 seconds early
 					{
 						nextVideoLoading = true;
-						//console.log("loading the next one, buddy");
-						loadNextVideo();
+						loadNextVideo(); //start getting the source for the next video
 					}
 					else if(changing && duration - currTime > items.skipLast) //if it is done changing, skip the first amount the user specifies
 					{
