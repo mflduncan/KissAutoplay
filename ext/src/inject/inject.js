@@ -76,9 +76,9 @@ function createVideo()
 	});
 	
 	//<source>
-	var src = document.createElement("source");
+	/*var src = document.createElement("source");
 	src.setAttribute( "id", "video_source");
-	src.setAttribute( "type", "video/mp4");
+	src.setAttribute( "type", "video/mp4");*/
 	
 	//<a>
 	var btn = document.createElement("a");
@@ -88,7 +88,7 @@ function createVideo()
 	btn.setAttribute( "class", "afterglow" );
 	
 	//Add to document
-	vid.appendChild(src);
+	//vid.appendChild(src);
 	document.body.appendChild(vid);
 	document.body.appendChild(btn);
 }
@@ -96,10 +96,17 @@ function createVideo()
 // Description: Called when an episode link is clicked. Just loads video right now.
 function clickVideoHandler()
 {
+	document.getElementById('launch_video').click();
+	addVideoHandler(function(){ //run this code while it waits to get video source
+		player = afterglow.getPlayer("lightbox_video");
+		elem = player.el_;
+		player.play(); //get rid of big play button
+		elem.classList.add('vjs-seeking'); //show loading circle	
+	});
 	loadVideo(this.href, function(){
-		document.getElementById('video_source').src = vidSource;
-		document.getElementById('launch_video').click();
-		addVideoHandler();
+		//document.getElementById('video_source').src = vidSource;
+		//document.getElementById('launch_video').click();
+		elem.classList.remove('vjs-seeking');
 		changeSource(vidSource);
 	}); //load the video of the link clicked on
 }
@@ -213,7 +220,7 @@ function getVideoFromFrame(i)
 }
 
 // Description: Adds the handler so the player knows when to switch to the next video
-function addVideoHandler()
+function addVideoHandler(callback)
 {
 	var counter = 0;
 	
@@ -265,30 +272,42 @@ function addVideoHandler()
 			});
 			//console.log("added video handlers");
 		}
-		else if(counter++ > 20) //If we have tried for 10 seconds, then just give up already.
+		else if(counter++ > 50) //If we have tried for 5 seconds, then just give up already.
 		{
 			//console.log("could not add handlers for video");
 			clearInterval(interval);
 		}
-	}, 500); //run every half second
+	}, 100); //run every tenth second
+	if(callback != null) //call back if one is provided
+	{
+		callback()
+	}
 }
 
 function addSkipHandlers()
 {
 	document.addEventListener("ka-playNext", function() { 
-		nextVideoLoaded = false;
-		loadVideo(nextLink, function(){
-			changeSource(vidSource);
-			changing = true;
-		});
+		if(nextLink != null)
+		{
+			nextVideoLoaded = false;
+			unloadVideo();
+			loadVideo(nextLink, function(){
+				changeSource(vidSource);
+				changing = true;
+			});
+		}
 	});	
 
 	document.addEventListener("ka-playPrev", function() { 
-		nextVideoLoaded = false;
-		loadVideo(prevLink, function(){
-			changeSource(vidSource);
-			changing = true;
-		});
+		if(prevLink != null)
+		{
+			nextVideoLoaded = false;
+			unloadVideo();
+			loadVideo(prevLink, function(){
+				changeSource(vidSource);
+				changing = true;
+			});
+		}
 	});		
 }
 
@@ -297,4 +316,18 @@ function hideSkipButtons()
 	var player = afterglow.getPlayer("lightbox_video");
 	player.controlBar.NextVideoButton.el_.classList.add("vjs-hidden");
 	player.controlBar.PrevVideoButton.el_.classList.add("vjs-hidden");
+}
+
+function unloadVideo()
+{
+	player = afterglow.getPlayer("lightbox_video");
+	elem = player.el_;
+	vid = player.el_.children[0];
+	
+	player.pause();
+	vid.removeAttribute("src");
+	player.load();
+	player.play();
+	player.duration(0);
+	elem.classList.add('vjs-seeking'); //show loading circle
 }
