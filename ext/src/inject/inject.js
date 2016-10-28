@@ -206,7 +206,6 @@ function addSkipHandlers()
 	document.addEventListener("ka-playNext", function() { 
 		if(nextLink != null && !skipping)
 		{
-			console.log("next");
 			skipping = true;
 			nextVideoLoaded = false;
 			unloadVideo();
