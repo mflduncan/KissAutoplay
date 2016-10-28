@@ -35,7 +35,7 @@ var nextVideoLoading = false;
 
 chrome.extension.sendMessage({}, function(response) {
 	var readyStateCheckInterval = setInterval(function() {
-	if (document.readyState === "interactive") {
+	if (document.readyState === "interactive" || document.readyState === "complete") {
 		clearInterval(readyStateCheckInterval);
 
 		// ----------------------------------------------------------
@@ -104,8 +104,11 @@ function addEpisodeHandlers()
 	
 	for(i = 2; i < rows.length; i++) //add the onclick to each link so that it launches the video instead of going to page
 	{
-		rows[i].cells[0].childNodes[1].setAttribute( "onclick", "return false;" ); //so it doesn't navigate to the href
-		rows[i].cells[0].childNodes[1].addEventListener( "click", clickVideoHandler); //so it is sent to launch video after click
+		if(rows[i].cells && rows[i].cells[0])
+		{
+			rows[i].cells[0].childNodes[1].setAttribute( "onclick", "return false;" ); //so it doesn't navigate to the href
+			rows[i].cells[0].childNodes[1].addEventListener( "click", clickVideoHandler); //so it is sent to launch video after click
+		}
 	}	
 }
 
@@ -118,6 +121,7 @@ function clickVideoHandler()
 		elem = player.el_;
 		player.play(); //get rid of big play button
 		elem.classList.add('vjs-seeking'); //show loading circle	
+		//player.requestFullscreen(); //auto fullscreen. possible option?
 	});
 	loadVideo(this.href, function(){
 		changeSource(vidSource);
