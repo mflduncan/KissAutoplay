@@ -31,10 +31,20 @@
 var nextLink = null;
 var prevLink = null;
 var vidSource = null;
+
 var changing = false;
 var skipping = false;
 var nextVideoLoaded = false;
 var nextVideoLoading = false;
+
+/*var PlayerState{
+	LOADING: 0,
+	BGLOADING: 1,
+	LOADED: 2,
+	CHANGING: 3,
+	PLAYING: 4
+}
+var playerState = PlayerState.CHANGING;*/
 
 chrome.extension.sendMessage({}, function(response) {
 	var readyStateCheckInterval = setInterval(function() {
@@ -163,22 +173,45 @@ function addVideoHandler(callback)
 				chrome.storage.local.get({skipLast: 0}, function(items) {
 					if(duration > 0 && duration - currTime <= items.skipLast && !changing && nextVideoLoaded) //if at the end of the video then play the next video
 					{
-						changing = true;
-						nextVideoLoading = false;
+						changing = true; //Start changing
+						nextVideoLoading = false; //Done loading
 						nextVideoLoaded = false;
-						//loadNextVideo();
 						changeSource(vidSource);
-						//console.log("at the end, buddy");
-						//console.log(duration - currTime);
 					}
 					else if(duration > 0 && duration - currTime - 30 <= items.skipLast && !changing && !nextVideoLoading) //run 30 seconds early
 					{
-						nextVideoLoading = true;
+						nextVideoLoading = true; //Start loading
 						loadNextVideo(); //start getting the source for the next video
 					}
+					/*if(duration > 0 && duration - currTime - 30 <= items.skipLast)
+					{
+						if(playerState == PlayerState.PLAYING) //if it is not loading, start the load
+						{
+							playerState = PlayerState.BGLOADING;
+							loadVideo(nextLink, function(){
+								playerState= PlayerState.LOADED;
+							}
+						}
+						else if(playerState == PlayerState.LOADED && duration - currTime <= items.skipLast) //if it is loaded and at the end
+						{
+							playerState = PlayerState.CHANGING;
+							changeSource(vidSource);
+						}
+						else if(playerState == PlayerState.BGLOADING && duration - currTime <= items.skipLast) //if it is not loaded and at the end
+						{
+							playerState = PlayerState.LOADING;
+							unloadVideo();
+						}
+					}
+					else if(playerState == PlayerState.CHANGING && duration - currTime > items.skipLast)
+					{
+						playerState = PlayerState.PLAYING;
+						chrome.storage.local.get({skipFirst: 0}, function(i) {
+							player.currentTime(i.skipFirst);
+						});
+					}*/
 					else if(changing && duration - currTime > items.skipLast) //if it is done changing, skip the first amount the user specifies
 					{
-						//console.log("video handlers back online");
 						changing = false;
 						chrome.storage.local.get({skipFirst: 0}, function(i) {
 							player.currentTime(i.skipFirst);
