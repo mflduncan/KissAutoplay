@@ -213,7 +213,6 @@ function addSkipHandlers()
 				changeSource(vidSource);
 				changing = true;
 				setTimeout(function() { skipping = false; }, 3000);
-				//skipping = false;
 			});
 		}
 	});	
@@ -227,7 +226,7 @@ function addSkipHandlers()
 			loadVideo(prevLink, function(){
 				changeSource(vidSource);
 				changing = true;
-				skipping = false;
+				setTimeout(function() { skipping = false; }, 3000);
 			});
 		}
 	});		
@@ -251,19 +250,13 @@ function hideSkipButtons()
 // Description: Grabs the source of the next episode and calls callback
 function loadVideo(url, callback)
 {
-	//console.log("Loading next video...");
-	//lightbox("<p>Loading...</p>");
 	var i = createIFrame(url);
 	var count = 0;
-	//i.onload = function() 
 	var interval = setInterval(function()
 	{ 
 		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 		{
-			//console.log("skipping that other shit...");
 			getVideoFromFrame(i);
-			//i.parentNode.removeChild(i); 
-			//changeSource(vidSource); //change the video in the player
 			nextVideoLoaded = true;
 			clearInterval(interval);
 			if(callback != null)
@@ -272,7 +265,6 @@ function loadVideo(url, callback)
 			}
 		}
 	}, 50);
-	//console.log("end of loadVideo");
 }
 function loadNextVideo()
 {
