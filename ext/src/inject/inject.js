@@ -1,11 +1,14 @@
 /*
 	To do:
 		- retry on error
-		- unload video when taking a long time (>30s) to load
+		- if episode ends before next episode is loaded, go to the loading screen
 			*rewrite video handlers to include callbacks
 		
 	Possible updates:
 		- change video quality button
+		- custom error page
+		- remember volume settings
+		- auto fullscreen option?
 		
 		
 	Decided against:
@@ -203,13 +206,15 @@ function addSkipHandlers()
 	document.addEventListener("ka-playNext", function() { 
 		if(nextLink != null && !skipping)
 		{
+			console.log("next");
 			skipping = true;
 			nextVideoLoaded = false;
 			unloadVideo();
 			loadVideo(nextLink, function(){
 				changeSource(vidSource);
 				changing = true;
-				skipping = false;
+				setTimeout(function() { skipping = false; }, 3000);
+				//skipping = false;
 			});
 		}
 	});	
