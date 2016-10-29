@@ -1,8 +1,7 @@
 /*
 	To do:
 		- retry on error
-		- if episode ends before next episode is loaded, go to the loading screen
-			*rewrite video handlers to include callbacks
+		
 		
 	Possible updates:
 		- change video quality button
@@ -18,6 +17,8 @@
 			*possibly a this show/global tab in the menu?
 		
 	Done:
+		- if episode ends before next episode is loaded, go to the loading screen
+			*rewrite video handlers to include callbacks
 		- loading screen while video loads
 		- skip instantly-- don't wait
 		- dont run on pages other than episode list 
@@ -37,14 +38,14 @@ var skipping = false;
 var nextVideoLoaded = false;
 var nextVideoLoading = false;
 
-/*var PlayerState{
+var PlayerState = {
 	LOADING: 0,
 	BGLOADING: 1,
 	LOADED: 2,
 	CHANGING: 3,
 	PLAYING: 4
 }
-var playerState = PlayerState.CHANGING;*/
+var playerState = PlayerState.CHANGING;
 
 chrome.extension.sendMessage({}, function(response) {
 	var readyStateCheckInterval = setInterval(function() {
@@ -156,9 +157,9 @@ function addVideoHandler(callback)
 		if(player) //If the player exists, add an event handler to it
 		{
 			clearInterval(interval); //Stop looping
-			chrome.storage.local.get({skipFirst: 0}, function(i) {
+			/*chrome.storage.local.get({skipFirst: 0}, function(i) {
 							player.currentTime(i.skipFirst);
-						});
+						});*/
 			chrome.storage.local.get({skipButtonsEnabled: true}, function(i) {
 							if(i.skipButtonsEnabled == false)
 							{
@@ -171,29 +172,27 @@ function addVideoHandler(callback)
 				var duration = this.duration();
 				var currTime = this.currentTime();
 				chrome.storage.local.get({skipLast: 0}, function(items) {
-					if(duration > 0 && duration - currTime <= items.skipLast && !changing && nextVideoLoaded) //if at the end of the video then play the next video
-					{
-						changing = true; //Start changing
-						nextVideoLoading = false; //Done loading
-						nextVideoLoaded = false;
-						changeSource(vidSource);
-					}
-					else if(duration > 0 && duration - currTime - 30 <= items.skipLast && !changing && !nextVideoLoading) //run 30 seconds early
-					{
-						nextVideoLoading = true; //Start loading
-						loadNextVideo(); //start getting the source for the next video
-					}
-					/*if(duration > 0 && duration - currTime - 30 <= items.skipLast)
+					if(duration > 0 && duration - currTime - 30 <= items.skipLast) //Close to end of current video
 					{
 						if(playerState == PlayerState.PLAYING) //if it is not loading, start the load
 						{
 							playerState = PlayerState.BGLOADING;
 							loadVideo(nextLink, function(){
-								playerState= PlayerState.LOADED;
-							}
+								console.log("loaded");
+								if(playerState == PlayerState.BGLOADING) //If it is loaded in the background while video still playing
+								{
+									playerState = PlayerState.LOADED; // then wait to change it
+								}
+								else if(playerState == PlayerState.LOADING)
+								{
+									playerState = PlayerState.CHANGING;
+									changeSource(vidSource);
+								}
+							});
 						}
 						else if(playerState == PlayerState.LOADED && duration - currTime <= items.skipLast) //if it is loaded and at the end
 						{
+							console.log("should be changing");
 							playerState = PlayerState.CHANGING;
 							changeSource(vidSource);
 						}
@@ -203,18 +202,11 @@ function addVideoHandler(callback)
 							unloadVideo();
 						}
 					}
-					else if(playerState == PlayerState.CHANGING && duration - currTime > items.skipLast)
+					else if(playerState == PlayerState.CHANGING && duration - currTime > items.skipLast) //Start of next video
 					{
-						playerState = PlayerState.PLAYING;
 						chrome.storage.local.get({skipFirst: 0}, function(i) {
 							player.currentTime(i.skipFirst);
-						});
-					}*/
-					else if(changing && duration - currTime > items.skipLast) //if it is done changing, skip the first amount the user specifies
-					{
-						changing = false;
-						chrome.storage.local.get({skipFirst: 0}, function(i) {
-							player.currentTime(i.skipFirst);
+							playerState = PlayerState.PLAYING;
 						});
 					}
 				});
@@ -237,15 +229,13 @@ function addVideoHandler(callback)
 function addSkipHandlers()
 {
 	document.addEventListener("ka-playNext", function() { 
-		if(nextLink != null && !skipping)
+		if(nextLink != null && playerState == PlayerState.PLAYING)
 		{
-			skipping = true;
-			nextVideoLoaded = false;
+			playerState = PlayerState.LOADING;
 			unloadVideo();
 			loadVideo(nextLink, function(){
 				changeSource(vidSource);
-				changing = true;
-				setTimeout(function() { skipping = false; }, 3000);
+				playerState = PlayerState.CHANGING;
 			});
 		}
 	});	
@@ -383,6 +373,5 @@ function unloadVideo()
 	vid.removeAttribute("src");
 	player.load();
 	player.play();
-	player.duration(0);
 	elem.classList.add('vjs-seeking'); //show loading circle
 }
