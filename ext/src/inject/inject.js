@@ -1,6 +1,7 @@
 /*
 	To do:
 		- retry on error
+		- disable next/skip when not relevant
 		
 		
 	Possible updates:
@@ -32,11 +33,6 @@
 var nextLink = null;
 var prevLink = null;
 var vidSource = null;
-
-var changing = false;
-var skipping = false;
-var nextVideoLoaded = false;
-var nextVideoLoading = false;
 
 var PlayerState = {
 	LOADING: 0,
@@ -211,6 +207,10 @@ function addVideoHandler(callback)
 					}
 				});
 			});
+			player.on("error", function()
+			{
+				
+			});
 			//console.log("added video handlers");
 		}
 		else if(counter++ > 50) //If we have tried for 5 seconds, then just give up already.
@@ -241,15 +241,13 @@ function addSkipHandlers()
 	});	
 
 	document.addEventListener("ka-playPrev", function() { 
-		if(prevLink != null && !skipping)
+		if(prevLink != null && playerState == PlayerState.PLAYING)
 		{
-			skipping = true;
-			nextVideoLoaded = false;
+			playerState = PlayerState.LOADING;
 			unloadVideo();
 			loadVideo(prevLink, function(){
 				changeSource(vidSource);
-				changing = true;
-				setTimeout(function() { skipping = false; }, 3000);
+				playerState = PlayerState.CHANGING;
 			});
 		}
 	});		
@@ -280,7 +278,6 @@ function loadVideo(url, callback)
 		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 		{
 			getVideoFromFrame(i);
-			nextVideoLoaded = true;
 			clearInterval(interval);
 			if(callback != null)
 			{
