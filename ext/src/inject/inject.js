@@ -125,6 +125,7 @@ function addEpisodeHandlers()
 // Description: Called when an episode link is clicked. Launches lightbox video, adds video  and loads video
 function clickVideoHandler()
 {
+	playerState = PlayerState.CHANGING;
 	document.getElementById('launch_video').click();
 	addVideoHandler(function(){ //run this code while it waits to get video source
 		player = afterglow.getPlayer("lightbox_video");
@@ -284,6 +285,10 @@ function loadVideo(url, callback)
 				callback();
 			}
 		}
+		/*if(i.src && i.src.includes("AreYouHuman") //if you are spamming too much
+		{
+			
+		}*/
 	}, 50);
 }
 function loadNextVideo()
@@ -321,14 +326,14 @@ function getVideoFromFrame(i)
 	var vid = i.contentWindow.document.getElementById("my_video_1_html5_api");
 	vid.pause();
 	vidSource = vid.src;
-	//console.log(vidSource);
+	vid.removeAttribute("src");
+	vid.load(); //reload with no source so it doesn't keep buffering
 	vid.parentElement.removeChild(vid);
 	
 	var nxt = i.contentWindow.document.getElementById('btnNext');
 	if(nxt)
 	{
 		nextLink = nxt.parentElement.href;
-		//console.log(nextLink);
 	}
 	else
 	{
@@ -339,7 +344,6 @@ function getVideoFromFrame(i)
 	if(prev)
 	{
 		prevLink = prev.parentElement.href;
-		//console.log(nextLink);
 	}
 	else
 	{
