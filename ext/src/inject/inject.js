@@ -175,7 +175,6 @@ function addVideoHandler(callback)
 						{
 							playerState = PlayerState.BGLOADING;
 							loadVideo(nextLink, function(){
-								console.log("loaded");
 								if(playerState == PlayerState.BGLOADING) //If it is loaded in the background while video still playing
 								{
 									playerState = PlayerState.LOADED; // then wait to change it
@@ -189,7 +188,6 @@ function addVideoHandler(callback)
 						}
 						else if(playerState == PlayerState.LOADED && duration - currTime <= items.skipLast) //if it is loaded and at the end
 						{
-							console.log("should be changing");
 							playerState = PlayerState.CHANGING;
 							changeSource(vidSource);
 						}
@@ -208,11 +206,10 @@ function addVideoHandler(callback)
 					}
 				});
 			});
-			player.on("error", function()
+			/*player.on("error", function()
 			{
 				
-			});
-			//console.log("added video handlers");
+			});*/
 		}
 		else if(counter++ > 50) //If we have tried for 5 seconds, then just give up already.
 		{
