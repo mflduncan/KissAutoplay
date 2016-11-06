@@ -1,8 +1,6 @@
 /*
 	To do:
 		- retry on error
-		- disable next/skip when not relevant
-		- remove getPlayer so many times - global player
 		
 		
 	Possible updates:
@@ -19,6 +17,8 @@
 			*possibly a this show/global tab in the menu?
 		
 	Done:
+		- remove getPlayer so many times - global player
+		- disable next/skip when not relevant
 		- if episode ends before next episode is loaded, go to the loading screen
 			*rewrite video handlers to include callbacks
 		- loading screen while video loads
@@ -30,6 +30,7 @@
 		- make pageaction 
 		- skip first run on first video
 */
+var player = null;
 
 var nextLink = null;
 var prevLink = null;
@@ -129,7 +130,6 @@ function clickVideoHandler()
 	playerState = PlayerState.CHANGING;
 	document.getElementById('launch_video').click();
 	addVideoHandler(function(){ //run this code while it waits to get video source
-		player = afterglow.getPlayer("lightbox_video");
 		elem = player.el_;
 		player.play(); //get rid of big play button
 		elem.classList.add('vjs-seeking'); //show loading circle	
@@ -151,7 +151,7 @@ function addVideoHandler(callback)
 	var counter = 0;
 	
 	var interval = setInterval(function(){
-		var player = afterglow.getPlayer("lightbox_video");
+		player = afterglow.getPlayer("lightbox_video");
 		if(player) //If the player exists, add an event handler to it
 		{
 			clearInterval(interval); //Stop looping
@@ -212,6 +212,10 @@ function addVideoHandler(callback)
 			{
 				
 			});*/
+			if(callback != null) //call back if one is provided
+			{
+				callback()
+			}
 		}
 		else if(counter++ > 50) //If we have tried for 5 seconds, then just give up already.
 		{
@@ -219,10 +223,6 @@ function addVideoHandler(callback)
 			clearInterval(interval);
 		}
 	}, 100); //run every tenth second
-	if(callback != null) //call back if one is provided
-	{
-		callback()
-	}
 }
 
 // Description: Adds handlers for the skip and previous buttons in the video
@@ -256,8 +256,8 @@ function addSkipHandlers()
 //Description: Greys out the skip button if the 
 function updateSkipButtons()
 {
-	var nextButton= afterglow.getPlayer("lightbox_video").controlBar.NextVideoButton;
-	var prevButton= afterglow.getPlayer("lightbox_video").controlBar.PrevVideoButton;
+	var nextButton= player.controlBar.NextVideoButton;
+	var prevButton= player.controlBar.PrevVideoButton;
 	//Next button
 	if(nextLink == null)
 	{
@@ -282,7 +282,6 @@ function updateSkipButtons()
 // Description: Hides the skip and previous buttons
 function hideSkipButtons()
 {
-	var player = afterglow.getPlayer("lightbox_video");
 	player.controlBar.NextVideoButton.el_.classList.add("vjs-hidden");
 	player.controlBar.PrevVideoButton.el_.classList.add("vjs-hidden");
 }
@@ -387,13 +386,12 @@ function getVideoFromFrame(i)
 function changeSource(src)
 {
 	elem.classList.remove('vjs-seeking'); //in case we were on a loading screen (will come back if actualy loading still needs to be done)
-	afterglow.getPlayer("lightbox_video").src(src);
+	player.src(src);
 }
 
 // Description: Stops the video. Displays black with a loading circle. 
 function unloadVideo()
 {
-	player = afterglow.getPlayer("lightbox_video");
 	elem = player.el_;
 	vid = player.el_.children[0];
 	
