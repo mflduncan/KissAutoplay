@@ -328,7 +328,7 @@ function getVideoFromFrame(i)
 	vidSource = vid.src;
 	vid.removeAttribute("src");
 	vid.load(); //reload with no source so it doesn't keep buffering
-	vid.parentElement.removeChild(vid);
+	//vid.parentElement.removeChild(vid);
 	
 	var nxt = i.contentWindow.document.getElementById('btnNext');
 	if(nxt)
