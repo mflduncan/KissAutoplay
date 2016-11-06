@@ -2,6 +2,7 @@
 	To do:
 		- retry on error
 		- disable next/skip when not relevant
+		- remove getPlayer so many times - global player
 		
 		
 	Possible updates:
@@ -203,6 +204,7 @@ function addVideoHandler(callback)
 							player.currentTime(i.skipFirst);
 							playerState = PlayerState.PLAYING;
 						});
+						updateSkipButtons();
 					}
 				});
 			});
@@ -249,6 +251,32 @@ function addSkipHandlers()
 			});
 		}
 	});		
+}
+
+//Description: Greys out the skip button if the 
+function updateSkipButtons()
+{
+	var nextButton= afterglow.getPlayer("lightbox_video").controlBar.NextVideoButton;
+	var prevButton= afterglow.getPlayer("lightbox_video").controlBar.PrevVideoButton;
+	//Next button
+	if(nextLink == null)
+	{
+		nextButton.disable();
+		console.log("disabled");
+	}
+	else
+	{
+		nextButton.enable();
+	}
+	//Prev button
+	if(prevLink == null)
+	{
+		prevButton.disable();
+	}
+	else
+	{
+		prevButton.enable();
+	}
 }
 
 // Description: Hides the skip and previous buttons
@@ -323,8 +351,10 @@ function getVideoFromFrame(i)
 	var vid = i.contentWindow.document.getElementById("my_video_1_html5_api");
 	vid.pause();
 	vidSource = vid.src;
-	vid.removeAttribute("src");
-	vid.load(); //reload with no source so it doesn't keep buffering
+	setTimeout(function(){ //run async-ish
+		vid.removeAttribute("src");
+		vid.load(); //reload with no source so it doesn't keep buffering
+	}, 0);
 	//vid.parentElement.removeChild(vid);
 	
 	var nxt = i.contentWindow.document.getElementById('btnNext');
