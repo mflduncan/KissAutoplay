@@ -1,16 +1,17 @@
 /*
 	To do:
-		- retry on error
 		- remember volume settings
 		- change video quality button
+		- custom error page
 		
 		
 	Possible updates:
-		- custom error page
-		- auto fullscreen option?
+		
 		
 		
 	Decided against:
+		- auto fullscreen option because offers little utility and inconsitent with almost any video player ever
+		- retry on error because by the time 2 finish the user would be waiting too long anyways. going with custom error messages instead
 		- text overlay to relay messages (cant load, episode name, etc) because it doesn't look good
 		- myanimelist reccomendations because felt too unrelated to overall goal
 		- different times for different shows because would overcomplicate
@@ -43,7 +44,8 @@ var PlayerState = {
 	BGLOADING: 1,
 	LOADED: 2,
 	CHANGING: 3,
-	PLAYING: 4
+	PLAYING: 4,
+	INTERRUPT: 5
 }
 var playerState = PlayerState.CHANGING;
 
@@ -113,7 +115,6 @@ function createVideo()
 
 function createTitle()
 {
-	console.log("creating title...");
 	var title = document.createElement("div");
 	title.textContent = "Loading...";
 	title.classList.add("ka-episode-title");
@@ -121,7 +122,6 @@ function createTitle()
 	
 	var lightbox = document.getElementsByClassName("afterglow-lightbox-wrapper")[0];
 	lightbox.appendChild(title);
-	console.log("done");
 }
 
 function setTitle(newTitle)
@@ -177,61 +177,16 @@ function addVideoHandler(callback)
 		if(player) //If the player exists, add an event handler to it
 		{
 			clearInterval(interval); //Stop looping
-			/*chrome.storage.local.get({skipFirst: 0}, function(i) {
-							player.currentTime(i.skipFirst);
-						});*/
+			
 			chrome.storage.local.get({skipButtonsEnabled: true}, function(i) {
 							if(i.skipButtonsEnabled == false)
 							{
 								hideSkipButtons();
 							}
-						});
-						
-			player.on('timeupdate', function()
-			{
-				var duration = this.duration();
-				var currTime = this.currentTime();
-				player.el_.focus();
-				chrome.storage.local.get({skipLast: 0}, function(items) {
-					if(duration > 0 && duration - currTime - 30 <= items.skipLast) //Close to end of current video
-					{
-						if(playerState == PlayerState.PLAYING) //if it is not loading, start the load
-						{
-							playerState = PlayerState.BGLOADING;
-							loadVideo(nextLink, function(){
-								if(playerState == PlayerState.BGLOADING) //If it is loaded in the background while video still playing
-								{
-									playerState = PlayerState.LOADED; // then wait to change it
-								}
-								else if(playerState == PlayerState.LOADING)
-								{
-									playerState = PlayerState.CHANGING;
-									changeSource(vidSource);
-								}
-							});
-						}
-						else if(playerState == PlayerState.LOADED && duration - currTime <= items.skipLast) //if it is loaded and at the end
-						{
-							playerState = PlayerState.CHANGING;
-							changeSource(vidSource);
-						}
-						else if(playerState == PlayerState.BGLOADING && duration - currTime <= items.skipLast) //if it is not loaded and at the end
-						{
-							playerState = PlayerState.LOADING;
-							unloadVideo();
-						}
-					}
-					else if(playerState == PlayerState.CHANGING && duration - currTime > items.skipLast) //Start of next video
-					{
-						chrome.storage.local.get({skipFirst: 0}, function(i) {
-							player.currentTime(i.skipFirst);
-							playerState = PlayerState.PLAYING;
-						});
-						updateSkipButtons();
-						setTitle(episodeTitle);
-					}
-				});
 			});
+			player.el_.focus();
+			player.on('timeupdate', playerTimeHandler);
+
 			/*player.on("error", function()
 			{
 				
@@ -249,30 +204,105 @@ function addVideoHandler(callback)
 	}, 100); //run every tenth second
 }
 
+function playerTimeHandler()
+{
+	var duration = this.duration();
+	var currTime = this.currentTime();
+	chrome.storage.local.get({skipLast: 0}, function(items) {
+		if(duration > 0 && duration - currTime - 30 <= items.skipLast && nextLink != null) //Close to end of current video
+		{
+			if(playerState == PlayerState.PLAYING) //if it is not loading, start the load
+			{
+				playerState = PlayerState.BGLOADING;
+				loadVideo(nextLink, function(){
+					if(playerState == PlayerState.BGLOADING) //If it is loaded in the background while video still playing
+					{
+						playerState = PlayerState.LOADED; // then wait to change it
+					}
+					else if(playerState == PlayerState.LOADING)
+					{
+						playerState = PlayerState.CHANGING;
+						changeSource(vidSource);
+					}
+				});
+			}
+			else if(playerState == PlayerState.LOADED && duration - currTime <= items.skipLast) //if it is loaded and at the end
+			{
+				playerState = PlayerState.CHANGING;
+				changeSource(vidSource);
+			}
+			else if(playerState == PlayerState.BGLOADING && duration - currTime <= items.skipLast) //if it is not loaded and at the end
+			{
+				playerState = PlayerState.LOADING;
+				unloadVideo();
+			}
+		}
+		else if(playerState == PlayerState.CHANGING && duration - currTime > items.skipLast) //Start of next video
+		{
+			chrome.storage.local.get({skipFirst: 0}, function(i) {
+				player.currentTime(i.skipFirst);
+				playerState = PlayerState.PLAYING;
+			});
+			updateSkipButtons();
+			setTitle(episodeTitle);
+		}
+	});
+}
+
 // Description: Adds handlers for the skip and previous buttons in the video
 function addSkipHandlers()
 {
 	document.addEventListener("ka-playNext", function() { 
-		if(nextLink != null && playerState == PlayerState.PLAYING)
+		if(nextLink != null)
 		{
-			playerState = PlayerState.LOADING;
-			unloadVideo();
-			loadVideo(nextLink, function(){
+			if(playerState == PlayerState.PLAYING) //If the video is playing, go to the load spinner screen and load the video
+			{
+				playerState = PlayerState.LOADING;
+				unloadVideo();
+				loadVideo(nextLink, function(){
+					changeSource(vidSource);
+					playerState = PlayerState.CHANGING;
+				});
+			}
+			else if(playerState == PlayerState.BGLOADING) //If the video is already loading in the background, just show the loading screen
+			{
+				playerState = PlayerState.LOADING;
+				unloadVideo();
+			}
+			else if(playerState == PlayerState.LOADED) //If the video is already loaded, just change the video
+			{
 				changeSource(vidSource);
 				playerState = PlayerState.CHANGING;
-			});
+			}
+			//Otherwise do nothing since the video is either loading or changing
 		}
 	});	
 
 	document.addEventListener("ka-playPrev", function() { 
-		if(prevLink != null && playerState == PlayerState.PLAYING)
+		if(prevLink != null)
 		{
-			playerState = PlayerState.LOADING;
-			unloadVideo();
-			loadVideo(prevLink, function(){
-				changeSource(vidSource);
-				playerState = PlayerState.CHANGING;
-			});
+			if(playerState != PlayerState.INTERRUPT) //Interrupt any loading, changing, etc.
+			{
+				playerState = PlayerState.INTERRUPT;
+				unloadVideo();
+				loadVideo(prevLink, function(){
+					console.log(player.currentSrc());
+					console.log(vidSource);
+					if(player.currentSrc() == vidSource) //If it already loaded the video ahead
+					{
+						loadVideo(prevLink, function() //you have to do it twice :(
+						{
+							changeSource(vidSource);
+							playerState = PlayerState.CHANGING;
+						});
+					}
+					else //Otherwise you are good
+					{
+						changeSource(vidSource);
+						playerState = PlayerState.CHANGING;
+					}
+				});
+			}
 		}
 	});		
 }
@@ -339,14 +369,6 @@ function loadVideo(url, callback)
 		}*/
 	}, 50);
 }
-function loadNextVideo()
-{
-	loadVideo(nextLink, null);
-}
-function loadPrevVideo()
-{
-	loadVideo(prevLink, null);
-}
 
 // Description: Creates the IFrame used to grab the video source
 function createIFrame(url)
@@ -373,12 +395,11 @@ function getVideoFromFrame(i)
 {
 	var vid = i.contentWindow.document.getElementById("my_video_1_html5_api");
 	vid.pause();
+	player.el_.focus();
 	vidSource = vid.src;
-	setTimeout(function(){ //run async-ish
-		vid.removeAttribute("src");
-		vid.load(); //reload with no source so it doesn't keep buffering
-	}, 0);
-	//vid.parentElement.removeChild(vid);
+	vid.removeAttribute("src");
+	//vid.load(); //reload with no source so it doesn't keep buffering
+	vid.parentElement.removeChild(vid);
 	//set title
 	episodeTitle = trimTitle(i.contentWindow.document.title);
 	//set nextLink
@@ -403,10 +424,10 @@ function getVideoFromFrame(i)
 	}
 }
 
+//Description: Gets just the episode name from a page title
 function trimTitle(title)
 {
 	var newTitle = title.slice(0, title.indexOf(" - "));
-	console.log(newTitle);
 	return newTitle;
 }
 
