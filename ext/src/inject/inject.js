@@ -326,7 +326,6 @@ function updateSkipButtons()
 	if(nextLink == null)
 	{
 		nextButton.disable();
-		console.log("disabled");
 	}
 	else
 	{
