@@ -191,6 +191,7 @@ function addVideoHandler(callback)
 			{
 				var duration = this.duration();
 				var currTime = this.currentTime();
+				player.el_.focus();
 				chrome.storage.local.get({skipLast: 0}, function(items) {
 					if(duration > 0 && duration - currTime - 30 <= items.skipLast) //Close to end of current video
 					{
