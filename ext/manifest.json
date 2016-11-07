@@ -31,6 +31,9 @@
 	  "exclude_matches": [
         "http://kissanime.to/Anime/*/*", "http://kisscartoon.me/Cartoon/*/*"
       ],
+	  "css": [
+	    "src/inject/inject.css"
+	  ],
       "js": [
         "js/afterglow.min.js", "src/inject/inject.js"
       ]

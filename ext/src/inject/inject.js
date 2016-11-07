@@ -1,12 +1,12 @@
 /*
 	To do:
 		- retry on error
+		- remember volume settings
+		- change video quality button
 		
 		
 	Possible updates:
-		- change video quality button
 		- custom error page
-		- remember volume settings
 		- auto fullscreen option?
 		
 		
@@ -17,6 +17,7 @@
 			*possibly a this show/global tab in the menu?
 		
 	Done:
+		- episode title
 		- remove getPlayer so many times - global player
 		- disable next/skip when not relevant
 		- if episode ends before next episode is loaded, go to the loading screen
@@ -35,6 +36,7 @@ var player = null;
 var nextLink = null;
 var prevLink = null;
 var vidSource = null;
+var episodeTitle = "Loading..";
 
 var PlayerState = {
 	LOADING: 0,
@@ -109,6 +111,25 @@ function createVideo()
 	document.body.appendChild(btn);
 }
 
+function createTitle()
+{
+	console.log("creating title...");
+	var title = document.createElement("div");
+	title.textContent = "Loading...";
+	title.classList.add("ka-episode-title");
+	title.id = "kaEpisodeTitle";
+	
+	var lightbox = document.getElementsByClassName("afterglow-lightbox-wrapper")[0];
+	lightbox.appendChild(title);
+	console.log("done");
+}
+
+function setTitle(newTitle)
+{
+	var title = document.getElementById("kaEpisodeTitle");
+	title.textContent = newTitle;
+}
+
 // Description: Overrides the behavior of the links to episodes
 function addEpisodeHandlers()
 {
@@ -133,6 +154,7 @@ function clickVideoHandler()
 		elem = player.el_;
 		player.play(); //get rid of big play button
 		elem.classList.add('vjs-seeking'); //show loading circle	
+		createTitle();
 		//player.requestFullscreen(); //auto fullscreen. possible option?
 	});
 	loadVideo(this.href, function(){
@@ -205,6 +227,7 @@ function addVideoHandler(callback)
 							playerState = PlayerState.PLAYING;
 						});
 						updateSkipButtons();
+						setTitle(episodeTitle);
 					}
 				});
 			});
@@ -355,7 +378,9 @@ function getVideoFromFrame(i)
 		vid.load(); //reload with no source so it doesn't keep buffering
 	}, 0);
 	//vid.parentElement.removeChild(vid);
-	
+	//set title
+	episodeTitle = trimTitle(i.contentWindow.document.title);
+	//set nextLink
 	var nxt = i.contentWindow.document.getElementById('btnNext');
 	if(nxt)
 	{
@@ -365,7 +390,7 @@ function getVideoFromFrame(i)
 	{
 		nextLink = null;
 	}
-	
+	//set prevLink
 	var prev = i.contentWindow.document.getElementById('btnPrevious');
 	if(prev)
 	{
@@ -375,6 +400,13 @@ function getVideoFromFrame(i)
 	{
 		prevLink = null;
 	}
+}
+
+function trimTitle(title)
+{
+	var newTitle = title.slice(0, title.indexOf(" - "));
+	console.log(newTitle);
+	return newTitle;
 }
 
 
