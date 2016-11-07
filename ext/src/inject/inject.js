@@ -1,9 +1,8 @@
 /*
 	To do:
-		- remember volume settings
 		- change video quality button
 		- custom error page
-		
+		- prevLink don't load twice
 		
 	Possible updates:
 		
@@ -18,6 +17,7 @@
 			*possibly a this show/global tab in the menu?
 		
 	Done:
+		- remember volume settings
 		- episode title
 		- remove getPlayer so many times - global player
 		- disable next/skip when not relevant
@@ -178,14 +178,19 @@ function addVideoHandler(callback)
 		{
 			clearInterval(interval); //Stop looping
 			
-			chrome.storage.local.get({skipButtonsEnabled: true}, function(i) {
-							if(i.skipButtonsEnabled == false)
-							{
-								hideSkipButtons();
-							}
+			chrome.storage.local.get({skipButtonsEnabled: true}, function(i) { //load skip button settings
+				if(i.skipButtonsEnabled == false)
+				{
+					hideSkipButtons();
+				}
+			});
+			
+			chrome.storage.local.get({volume: 1.0}, function(i) { //load volume settings
+				player.volume(i.volume);
 			});
 			player.el_.focus();
 			player.on('timeupdate', playerTimeHandler);
+			player.on('volumechange', volumeChangeHandler);
 
 			/*player.on("error", function()
 			{
@@ -204,6 +209,13 @@ function addVideoHandler(callback)
 	}, 100); //run every tenth second
 }
 
+//stores the volume when it is changed
+function volumeChangeHandler()
+{
+	chrome.storage.local.set({'volume': player.volume()}, null);
+}
+
+//called on timeupdate, gives autoplay functionality
 function playerTimeHandler()
 {
 	var duration = this.duration();
@@ -286,8 +298,6 @@ function addSkipHandlers()
 				playerState = PlayerState.INTERRUPT;
 				unloadVideo();
 				loadVideo(prevLink, function(){
-					console.log(player.currentSrc());
-					console.log(vidSource);
 					if(player.currentSrc() == vidSource) //If it already loaded the video ahead
 					{
 						loadVideo(prevLink, function() //you have to do it twice :(
