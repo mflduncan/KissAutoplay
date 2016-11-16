@@ -365,7 +365,8 @@ function loadVideo(url, callback)
 	{ 
 		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 		{
-			setQuality(i, "360p");
+			//setQuality(i, "360p");
+			getAllSources(i);
 			getVideoFromFrame(i);
 			clearInterval(interval);
 			if(callback != null)
@@ -429,6 +430,32 @@ function setQuality(i, quality)
 	console.log(optionNum);
 	res.options[optionNum].selected = true;
 	res.dispatchEvent(e);	
+}
+
+function getAllSources(i)
+{
+	var res = i.contentWindow.document.getElementById("selectQuality");
+	var vid = i.contentWindow.document.getElementById("my_video_1_html5_api");
+	var e = new Event("change");
+	var currSrc = vid.src;
+	var currOpt = res.options.selectedIndex;
+	var sources = [];
+	
+	for(i = 0; i < res.options.length; i++)
+	{
+		res.options[i].selected = true;
+		res.dispatchEvent(e);	
+		while(true)
+		{
+			if(vid.src != currSrc || res.options.selectedIndex ==  0) //if it changed, or it started on the default
+			{
+				sources.push({src: vid.src, type: 'video/mp4', label: res.options[i].innerHTML});
+				currSrc = vid.src;
+				break;
+			}
+		}
+	}
+	console.log(sources);
 }
 // Description: Grabs the video source from the episode page 
 function getVideoFromFrame(i)
