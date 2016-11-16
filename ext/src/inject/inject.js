@@ -365,6 +365,7 @@ function loadVideo(url, callback)
 	{ 
 		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 		{
+			setQuality(i, "360p");
 			getVideoFromFrame(i);
 			clearInterval(interval);
 			if(callback != null)
@@ -399,6 +400,36 @@ function createIFrame(url)
 	}
 }
 
+function setQuality(i, quality)
+{
+	//var qualNum = { 1080p:0, 720p:1, 480p:2, 360p:3, 240p:4 };
+	var qualNum = {};
+	qualNum["1080p"] = 0;
+	qualNum["720p"] = 1;
+	qualNum["480p"] = 2;
+	qualNum["360p"] = 3;
+	qualNum["240p"] = 4;
+	
+	var res = i.contentWindow.document.getElementById("selectQuality");
+	var e = new Event("change");
+	var optionNum = 0;
+	for(i = 0; i < res.options.length; i++)
+	{
+		if(qualNum[quality] <= qualNum[res.options[i].innerHTML])
+		{
+			console.log(quality + " = " + res.options[i].innerHTML);
+			optionNum = i;
+			break;
+		}
+		else
+		{
+			console.log(quality + " != " + res.options[i].innerHTML);
+		}
+	}
+	console.log(optionNum);
+	res.options[optionNum].selected = true;
+	res.dispatchEvent(e);	
+}
 // Description: Grabs the video source from the episode page 
 function getVideoFromFrame(i)
 {
@@ -407,8 +438,11 @@ function getVideoFromFrame(i)
 	player.el_.focus();
 	vidSource = vid.src;
 	vid.removeAttribute("src");
+	
+	
+	
 	//vid.load(); //reload with no source so it doesn't keep buffering
-	vid.parentElement.removeChild(vid);
+	//vid.parentElement.removeChild(vid);
 	//set title
 	episodeTitle = trimTitle(i.contentWindow.document.title);
 	//set nextLink
