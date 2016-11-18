@@ -4,7 +4,7 @@
 		- remember quality settings
 		
 	Possible updates:
-		
+		- sub/dub switch
 		
 		
 	Decided against:
@@ -16,6 +16,7 @@
 			*possibly a this show/global tab in the menu?
 		
 	Done:
+		- fix back button
 		- change video quality button
 		- prevLink don't load twice
 		- remember volume settings
@@ -115,6 +116,7 @@ function createVideo()
 	document.body.appendChild(btn);
 }
 
+// Description: Creates the title element
 function createTitle()
 {
 	var title = document.createElement("div");
@@ -126,6 +128,7 @@ function createTitle()
 	lightbox.appendChild(title);
 }
 
+// Description: Sets the title element
 function setTitle(newTitle)
 {
 	var title = document.getElementById("kaEpisodeTitle");
@@ -180,7 +183,6 @@ function addVideoHandler(callback)
 		{
 			clearInterval(interval); //Stop looping
 			loadResolutionPlugin();
-			console.log("Tried loading resolution plugin");
 			
 			chrome.storage.local.get({skipButtonsEnabled: true}, function(i) { //load skip button settings
 				if(i.skipButtonsEnabled == false)
@@ -195,6 +197,7 @@ function addVideoHandler(callback)
 			player.el_.focus();
 			player.on('timeupdate', playerTimeHandler);
 			player.on('volumechange', volumeChangeHandler);
+			player.on('resolutionchange', resolutionChangeHandler);
 
 			/*player.on("error", function()
 			{
@@ -213,10 +216,20 @@ function addVideoHandler(callback)
 	}, 100); //run every tenth second
 }
 
-//stores the volume when it is changed
+// Description: stores the volume when it is changed
 function volumeChangeHandler()
 {
 	chrome.storage.local.set({'volume': player.volume()}, null);
+}
+
+// Description: stores the resolution when it is changed
+function resolutionChangeHandler()
+{
+	var currResolution = player.currentResolution();
+	if(currResolution && playerState == PlayerState.PLAYING)
+	{
+		chrome.storage.local.set({'resolution': currResolution["label"]}, null);
+	}
 }
 
 //called on timeupdate, gives autoplay functionality
@@ -364,13 +377,12 @@ function hideSkipButtons()
 	player.controlBar.PrevVideoButton.el_.classList.add("vjs-hidden");
 }
 
+// Description: Loads the resolution plugin into the player
 function loadResolutionPlugin()
 {
 	player.videoJsResolutionSwitcher({ default: 'high', dynamicLabel: false });
-	console.log("Should have added the plugin");
 }
-// Description: loads the next video into the player
-// Preconditions: video player must already be open!
+
 
 
 /**************************************
@@ -422,6 +434,7 @@ function createIFrame(url)
 	}
 }
 
+//Description: Sets the quality before grabbing source -- no longer used
 function setQuality(i, quality)
 {
 	//var qualNum = { 1080p:0, 720p:1, 480p:2, 360p:3, 240p:4 };
@@ -453,6 +466,7 @@ function setQuality(i, quality)
 	res.dispatchEvent(e);	
 }
 
+// Description: Gets all of the sources from the video, returns array
 function getAllSources(i)
 {
 	var res = i.contentWindow.document.getElementById("selectQuality");
@@ -479,6 +493,7 @@ function getAllSources(i)
 	console.log(sources);
 	return sources;
 }
+
 // Description: Grabs the video source from the episode page 
 function getVideoFromFrame(i)
 {
@@ -532,8 +547,46 @@ function trimTitle(title)
 //Description: loads the source into the player and beings playing
 function changeSource(src)
 {
-	player.el_.classList.remove('vjs-seeking'); //in case we were on a loading screen (will come back if actualy loading still needs to be done)
-	player.updateSrc(src);
+	getQualityIndex(function(index){
+		player.el_.classList.remove('vjs-seeking'); //in case we were on a loading screen (will come back if actualy loading still needs to be done)
+		player.updateSrc(src);
+		if(index != 0)
+		{
+			setTimeout(function(){player.currentResolution(vidSource[index]["label"]);}, 1000);
+		}
+	});
+}
+
+// Description: gets the index of the saved resolution it should be at
+function getQualityIndex(callback)
+{
+	chrome.storage.local.get({resolution: "720p"}, function(item) {
+		var qualNum = {};
+		qualNum["1080p"] = 0;
+		qualNum["720p"] = 1;
+		qualNum["480p"] = 2;
+		qualNum["360p"] = 3;
+		qualNum["240p"] = 4;
+		
+		var optionNum = vidSource.length-1;
+		for(i = 0; i < vidSource.length; i++)
+		{
+			if(qualNum[item.resolution] <= qualNum[vidSource[i]["label"]])
+			{
+				console.log(i);
+				optionNum = i;
+				break;
+			}
+			else
+			{
+				console.log(qualNum[item.resolution] + " != " + qualNum[vidSource[i]["label"]]);
+			}
+		}
+		if(callback)
+		{
+			callback(optionNum);
+		}
+	});
 }
 
 // Description: Stops the video. Displays black with a loading circle. 

@@ -92,21 +92,11 @@
       this.sources = this.player_.getGroupedSrc();
       this.currentSelection = this.player_.currentResolution();
       this.label.innerHTML = this.currentSelection ? this.currentSelection.label : '';
-	  console.log(this.currentSelection);
-	  if(this.currentSelection && (this.currentSelection['label'] == "720p" || this.currentSelection['label'] == "1080p"))
-	  {
-		  this.el().classList.add("vjs-ag-res-hd");
-	  }
-	  else
-	  {
-		  this.el().classList.remove("vjs-ag-res-hd");
-		  console.log(this.currentSelection);
-	  }
       return MenuButton.prototype.update.call(this);
     };
 	ResolutionMenuButton.prototype.updateButton = function(){
 		var currSelection = this.player_.currentResolution();
-		console.log(currSelection);
+		//console.log(currSelection);
       if(currSelection && (currSelection['label'] == "720p" || currSelection['label'] == "1080p"))
 	  {
 		  this.el().classList.add("vjs-ag-res-hd");
