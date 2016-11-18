@@ -3,6 +3,7 @@
 		- change video quality button
 		- custom error page
 		- prevLink don't load twice
+		- FIX PREVIOUS BUTTON YOU TWAT
 		
 	Possible updates:
 		
@@ -36,7 +37,8 @@ var player = null;
 
 var nextLink = null;
 var prevLink = null;
-var vidSource = null;
+var prevPrevLink = null;
+var vidSource = [];
 var episodeTitle = "Loading..";
 
 var PlayerState = {
@@ -177,6 +179,8 @@ function addVideoHandler(callback)
 		if(player) //If the player exists, add an event handler to it
 		{
 			clearInterval(interval); //Stop looping
+			loadResolutionPlugin();
+			console.log("Tried loading resolution plugin");
 			
 			chrome.storage.local.get({skipButtonsEnabled: true}, function(i) { //load skip button settings
 				if(i.skipButtonsEnabled == false)
@@ -221,9 +225,9 @@ function playerTimeHandler()
 	var duration = this.duration();
 	var currTime = this.currentTime();
 	chrome.storage.local.get({skipLast: 0}, function(items) {
-		if(duration > 0 && duration - currTime - 30 <= items.skipLast && nextLink != null) //Close to end of current video
+		if(duration > 0 && duration - currTime - 30 <= items.skipLast) //Close to end of current video
 		{
-			if(playerState == PlayerState.PLAYING) //if it is not loading, start the load
+			if(playerState == PlayerState.PLAYING && nextLink != null) //if it is not loading, start the load
 			{
 				playerState = PlayerState.BGLOADING;
 				loadVideo(nextLink, function(){
@@ -265,29 +269,26 @@ function playerTimeHandler()
 function addSkipHandlers()
 {
 	document.addEventListener("ka-playNext", function() { 
-		if(nextLink != null)
+		if(playerState == PlayerState.PLAYING && nextLink != null) //If the video is playing, go to the load spinner screen and load the video
 		{
-			if(playerState == PlayerState.PLAYING) //If the video is playing, go to the load spinner screen and load the video
-			{
-				playerState = PlayerState.LOADING;
-				unloadVideo();
-				loadVideo(nextLink, function(){
-					changeSource(vidSource);
-					playerState = PlayerState.CHANGING;
-				});
-			}
-			else if(playerState == PlayerState.BGLOADING) //If the video is already loading in the background, just show the loading screen
-			{
-				playerState = PlayerState.LOADING;
-				unloadVideo();
-			}
-			else if(playerState == PlayerState.LOADED) //If the video is already loaded, just change the video
-			{
+			playerState = PlayerState.LOADING;
+			unloadVideo();
+			loadVideo(nextLink, function(){
 				changeSource(vidSource);
 				playerState = PlayerState.CHANGING;
-			}
-			//Otherwise do nothing since the video is either loading or changing
+			});
 		}
+		else if(playerState == PlayerState.BGLOADING) //If the video is already loading in the background, just show the loading screen
+		{
+			playerState = PlayerState.LOADING;
+			unloadVideo();
+		}
+		else if(playerState == PlayerState.LOADED) //If the video is already loaded, just change the video
+		{
+			changeSource(vidSource);
+			playerState = PlayerState.CHANGING;
+		}
+		//Otherwise do nothing since the video is either loading or changing
 	});	
 
 	document.addEventListener("ka-playPrev", function() { 
@@ -297,24 +298,37 @@ function addSkipHandlers()
 			{
 				playerState = PlayerState.INTERRUPT;
 				unloadVideo();
-				loadVideo(prevLink, function(){
-					if(player.currentSrc() == vidSource) //If it already loaded the video ahead
-					{
-						loadVideo(prevLink, function() //you have to do it twice :(
-						{
-							changeSource(vidSource);
-							playerState = PlayerState.CHANGING;
-						});
-					}
-					else //Otherwise you are good
+				if(!isACurrentSource(player.currentSrc())) //If it already loaded the video ahead
+				{
+					loadVideo(prevPrevLink, function() 
 					{
 						changeSource(vidSource);
 						playerState = PlayerState.CHANGING;
-					}
-				});
+					});
+				}
+				else
+				{
+					loadVideo(prevLink, function() 
+					{
+						changeSource(vidSource);
+						playerState = PlayerState.CHANGING;
+					});
+				}
 			}
 		}
 	});		
+}
+
+function isACurrentSource(src)
+{
+	for(i = 0;i < vidSource.length; i++)
+	{
+		if(vidSource[i]["src"] == src)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 //Description: Greys out the skip button if the 
@@ -348,6 +362,12 @@ function hideSkipButtons()
 	player.controlBar.NextVideoButton.el_.classList.add("vjs-hidden");
 	player.controlBar.PrevVideoButton.el_.classList.add("vjs-hidden");
 }
+
+function loadResolutionPlugin()
+{
+	player.videoJsResolutionSwitcher({ default: 'high', dynamicLabel: false });
+	console.log("Should have added the plugin");
+}
 // Description: loads the next video into the player
 // Preconditions: video player must already be open!
 
@@ -366,7 +386,7 @@ function loadVideo(url, callback)
 		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 		{
 			//setQuality(i, "360p");
-			getAllSources(i);
+			vidSource = getAllSources(i);
 			getVideoFromFrame(i);
 			clearInterval(interval);
 			if(callback != null)
@@ -456,6 +476,7 @@ function getAllSources(i)
 		}
 	}
 	console.log(sources);
+	return sources;
 }
 // Description: Grabs the video source from the episode page 
 function getVideoFromFrame(i)
@@ -463,7 +484,7 @@ function getVideoFromFrame(i)
 	var vid = i.contentWindow.document.getElementById("my_video_1_html5_api");
 	vid.pause();
 	player.el_.focus();
-	vidSource = vid.src;
+	//vidSource = vid.src;
 	vid.removeAttribute("src");
 	
 	
@@ -486,6 +507,7 @@ function getVideoFromFrame(i)
 	var prev = i.contentWindow.document.getElementById('btnPrevious');
 	if(prev)
 	{
+		prevPrevLink = prevLink;
 		prevLink = prev.parentElement.href;
 	}
 	else
@@ -509,8 +531,8 @@ function trimTitle(title)
 //Description: loads the source into the player and beings playing
 function changeSource(src)
 {
-	elem.classList.remove('vjs-seeking'); //in case we were on a loading screen (will come back if actualy loading still needs to be done)
-	player.src(src);
+	player.el_.classList.remove('vjs-seeking'); //in case we were on a loading screen (will come back if actualy loading still needs to be done)
+	player.updateSrc(src);
 }
 
 // Description: Stops the video. Displays black with a loading circle. 
