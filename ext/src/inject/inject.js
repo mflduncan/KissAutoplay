@@ -1,9 +1,7 @@
 /*
 	To do:
-		- change video quality button
 		- custom error page
-		- prevLink don't load twice
-		- FIX PREVIOUS BUTTON YOU TWAT
+		- remember quality settings
 		
 	Possible updates:
 		
@@ -18,6 +16,8 @@
 			*possibly a this show/global tab in the menu?
 		
 	Done:
+		- change video quality button
+		- prevLink don't load twice
 		- remember volume settings
 		- episode title
 		- remove getPlayer so many times - global player
@@ -319,6 +319,7 @@ function addSkipHandlers()
 	});		
 }
 
+//Description: Utility to skip handlers. Tells if the src is one of the current ones loaded
 function isACurrentSource(src)
 {
 	for(i = 0;i < vidSource.length; i++)
@@ -385,7 +386,6 @@ function loadVideo(url, callback)
 	{ 
 		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 		{
-			//setQuality(i, "360p");
 			vidSource = getAllSources(i);
 			getVideoFromFrame(i);
 			clearInterval(interval);
@@ -407,7 +407,8 @@ function createIFrame(url)
 	var i = document.getElementById("hiddenDisplay");
 	if(i)
 	{
-		i.src = url;
+		//i.src = url;
+		i.contentWindow.location.replace(url);
 		return i;
 	}
 	else
