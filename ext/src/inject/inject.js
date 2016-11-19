@@ -1,7 +1,6 @@
 /*
 	To do:
 		- custom error page
-		- remember quality settings
 		
 	Possible updates:
 		- sub/dub switch
@@ -16,6 +15,7 @@
 			*possibly a this show/global tab in the menu?
 		
 	Done:
+		- remember quality settings
 		- fix back button
 		- change video quality button
 		- prevLink don't load twice
@@ -210,7 +210,7 @@ function addVideoHandler(callback)
 		}
 		else if(counter++ > 50) //If we have tried for 5 seconds, then just give up already.
 		{
-			//console.log("could not add handlers for video");
+			console.error("Could not add handlers for video");
 			clearInterval(interval);
 		}
 	}, 100); //run every tenth second
@@ -226,7 +226,7 @@ function volumeChangeHandler()
 function resolutionChangeHandler()
 {
 	var currResolution = player.currentResolution();
-	if(currResolution && playerState == PlayerState.PLAYING)
+	if(currResolution && (playerState == PlayerState.PLAYING || playerState == playerState.BGLOADING || playerState.LOADED))
 	{
 		chrome.storage.local.set({'resolution': currResolution["label"]}, null);
 	}
@@ -419,9 +419,7 @@ function createIFrame(url)
 	var i = document.getElementById("hiddenDisplay");
 	if(i)
 	{
-		//i.src = url;
 		i.contentWindow.location.replace(url);
-		return i;
 	}
 	else
 	{
@@ -430,8 +428,9 @@ function createIFrame(url)
 		i.style.display = 'none';
 		i.src = url;
 		document.body.appendChild(i);	
-		return i;
 	}
+	chrome.extension.sendMessage({"url": url});
+	return i;
 }
 
 //Description: Sets the quality before grabbing source -- no longer used
@@ -490,7 +489,6 @@ function getAllSources(i)
 			}
 		}
 	}
-	console.log(sources);
 	return sources;
 }
 
@@ -549,10 +547,15 @@ function changeSource(src)
 {
 	getQualityIndex(function(index){
 		player.el_.classList.remove('vjs-seeking'); //in case we were on a loading screen (will come back if actualy loading still needs to be done)
-		player.updateSrc(src);
+		
+		//Unnecessary to split them up, but I don't feel like testing more. Just use updateSrcSelected in the future.
 		if(index != 0)
 		{
-			setTimeout(function(){player.currentResolution(vidSource[index]["label"]);}, 1000);
+			player.updateSrcSelected(src, index);
+		}
+		else
+		{
+			player.updateSrc(src);
 		}
 	});
 }
@@ -573,13 +576,8 @@ function getQualityIndex(callback)
 		{
 			if(qualNum[item.resolution] <= qualNum[vidSource[i]["label"]])
 			{
-				console.log(i);
 				optionNum = i;
 				break;
-			}
-			else
-			{
-				console.log(qualNum[item.resolution] + " != " + qualNum[vidSource[i]["label"]]);
 			}
 		}
 		if(callback)

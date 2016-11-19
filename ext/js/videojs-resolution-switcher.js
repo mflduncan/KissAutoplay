@@ -155,6 +155,37 @@
         player.trigger('resolutionchange');
         return player;
       };
+	  
+	  player.updateSrcSelected = function(src, index){
+        //Return current src if src is not given
+        if(!src){ return player.src(); }
+
+        // Only add those sources which we can (maybe) play
+        src = src.filter( function(source) {
+          try {
+            return ( player.canPlayType( source.type ) !== '' );
+          } catch (e) {
+            // If a Tech doesn't yet have canPlayType just add it
+            return true;
+          }
+        });
+        //Sort sources
+        this.currentSources = src.sort(compareResolutions);
+        this.groupedSrc = bucketSources(this.currentSources);
+        // Pick one by default
+        var chosen = {	label: src[index].label, 
+						sources: this.groupedSrc.label[src[index].label], 
+						res: src[index].res};
+        this.currentResolutionState = {
+          label: chosen.label,
+          sources: chosen.sources
+        };
+
+        player.trigger('updateSources');
+        player.setSourcesSanitized(chosen.sources, chosen.label);
+        player.trigger('resolutionchange');
+        return player;
+      };
 
       /**
        * Returns current resolution or sets one when label is specified

@@ -1,6 +1,6 @@
 
 // When the extension is installed or upgraded ...
-	chrome.runtime.onInstalled.addListener(function() {
+chrome.runtime.onInstalled.addListener(function() {
 	// Replace all rules ...
 	chrome.declarativeContent.onPageChanged.removeRules(undefined, function() {
 		// With a new rule ...
@@ -19,4 +19,14 @@
 		}
 		]);
 	});
+});
+
+chrome.extension.onMessage.addListener(function(request, sender)
+{
+	console.log("hello, hello");
+	console.log(request.url);
+	if(request.url)
+	{
+		chrome.history.addUrl({url:request.url});
+	}
 });
