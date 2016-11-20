@@ -4,6 +4,8 @@
 		
 	Possible updates:
 		- sub/dub switch
+		- make title a link
+		- make power button page specific
 		
 		
 	Decided against:
