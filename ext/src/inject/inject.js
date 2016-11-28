@@ -99,6 +99,7 @@ function createVideo()
 	vid.setAttribute( "id", "lightbox_video" );
 	vid.setAttribute( "width", "1280" );
 	vid.setAttribute( "height", "720" );
+	//vid.setAttribute( "data-autoresize", "fit");
 	chrome.storage.local.get({dataSkin: "dark"}, function(i) {
 			if(i.dataSkin == "dark" || i.dataSkin == "light")
 			{
@@ -250,9 +251,9 @@ function playerTimeHandler()
 					{
 						playerState = PlayerState.LOADED; // then wait to change it
 					}
-					else if(playerState == PlayerState.LOADING)
+					else if(playerState == PlayerState.LOADING) //If it already made it to the end and is at the loading screen
 					{
-						playerState = PlayerState.CHANGING;
+						playerState = PlayerState.CHANGING; //change now
 						changeSource(vidSource);
 					}
 				});
@@ -276,6 +277,7 @@ function playerTimeHandler()
 			});
 			updateSkipButtons();
 			setTitle(episodeTitle);
+			resizeIfNecessary();
 		}
 	});
 }
@@ -562,6 +564,26 @@ function changeSource(src)
 	});
 }
 
+function resizeIfNecessary()
+{
+	var vid = document.getElementsByTagName("video")[0];
+	var aspect_ratio = player.videoWidth()/player.videoHeight();
+		
+	console.log(vid.videoWidth);
+	console.log(vid.videoHeight);
+	console.log(aspect_ratio);
+	console.log(16/9);
+	if(aspect_ratio - (16/9) <= -.1 || aspect_ratio - (16/9) >= .1) //if the video is not 16:9
+	{
+		console.log("changing...");
+		var newWidth = aspect_ratio * player.videoHeight();
+		console.log(newWidth);
+		//player.dimension("width", Math.round(newWidth));
+		//vid.setAttribute("width", Math.round(newWidth));
+		player.width(Math.round(newWidth));
+	}
+	else{ console.log("its fine");}
+}
 // Description: gets the index of the saved resolution it should be at
 function getQualityIndex(callback)
 {
