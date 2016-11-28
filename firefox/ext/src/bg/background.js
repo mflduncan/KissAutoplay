@@ -35,3 +35,13 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 		chrome.pageAction.show(tab.id);
 	}
 });
+
+chrome.runtime.onMessage.addListener(function(request, sender)
+{
+	console.log("hello, hello");
+	console.log(request.url);
+	if(request.url)
+	{
+		chrome.history.addUrl({url:request.url});
+	}
+});

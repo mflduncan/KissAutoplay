@@ -1,11 +1,11 @@
 /*
 	To do:
+		- change video quality button
 		- custom error page
+		- prevLink don't load twice
 		
 	Possible updates:
-		- sub/dub switch
-		- make title a link
-		- make power button page specific
+		
 		
 		
 	Decided against:
@@ -17,10 +17,6 @@
 			*possibly a this show/global tab in the menu?
 		
 	Done:
-		- remember quality settings
-		- fix back button
-		- change video quality button
-		- prevLink don't load twice
 		- remember volume settings
 		- episode title
 		- remove getPlayer so many times - global player
@@ -40,8 +36,7 @@ var player = null;
 
 var nextLink = null;
 var prevLink = null;
-var prevPrevLink = null;
-var vidSource = [];
+var vidSource = null;
 var episodeTitle = "Loading..";
 
 var PlayerState = {
@@ -54,6 +49,7 @@ var PlayerState = {
 }
 var playerState = PlayerState.CHANGING;
 
+console.log("fuck firefox");
 init();
 
 function init() {
@@ -101,7 +97,6 @@ function createVideo()
 	vid.setAttribute( "id", "lightbox_video" );
 	vid.setAttribute( "width", "1280" );
 	vid.setAttribute( "height", "720" );
-	//vid.setAttribute( "data-autoresize", "fit");
 	chrome.storage.local.get({dataSkin: "dark"}, function(i) {
 			if(i.dataSkin == "dark" || i.dataSkin == "light")
 			{
@@ -121,7 +116,6 @@ function createVideo()
 	document.body.appendChild(btn);
 }
 
-// Description: Creates the title element
 function createTitle()
 {
 	var title = document.createElement("div");
@@ -133,7 +127,6 @@ function createTitle()
 	lightbox.appendChild(title);
 }
 
-// Description: Sets the title element
 function setTitle(newTitle)
 {
 	var title = document.getElementById("kaEpisodeTitle");
@@ -187,7 +180,6 @@ function addVideoHandler(callback)
 		if(player) //If the player exists, add an event handler to it
 		{
 			clearInterval(interval); //Stop looping
-			loadResolutionPlugin();
 			
 			chrome.storage.local.get({skipButtonsEnabled: true}, function(i) { //load skip button settings
 				if(i.skipButtonsEnabled == false)
@@ -202,7 +194,6 @@ function addVideoHandler(callback)
 			player.el_.focus();
 			player.on('timeupdate', playerTimeHandler);
 			player.on('volumechange', volumeChangeHandler);
-			player.on('resolutionchange', resolutionChangeHandler);
 
 			/*player.on("error", function()
 			{
@@ -215,26 +206,16 @@ function addVideoHandler(callback)
 		}
 		else if(counter++ > 50) //If we have tried for 5 seconds, then just give up already.
 		{
-			console.error("Could not add handlers for video");
+			//console.log("could not add handlers for video");
 			clearInterval(interval);
 		}
 	}, 100); //run every tenth second
 }
 
-// Description: stores the volume when it is changed
+//stores the volume when it is changed
 function volumeChangeHandler()
 {
 	chrome.storage.local.set({'volume': player.volume()}, null);
-}
-
-// Description: stores the resolution when it is changed
-function resolutionChangeHandler()
-{
-	var currResolution = player.currentResolution();
-	if(currResolution && (playerState == PlayerState.PLAYING || playerState == playerState.BGLOADING || playerState.LOADED))
-	{
-		chrome.storage.local.set({'resolution': currResolution["label"]}, null);
-	}
 }
 
 //called on timeupdate, gives autoplay functionality
@@ -243,9 +224,9 @@ function playerTimeHandler()
 	var duration = this.duration();
 	var currTime = this.currentTime();
 	chrome.storage.local.get({skipLast: 0}, function(items) {
-		if(duration > 0 && duration - currTime - 30 <= items.skipLast) //Close to end of current video
+		if(duration > 0 && duration - currTime - 30 <= items.skipLast && nextLink != null) //Close to end of current video
 		{
-			if(playerState == PlayerState.PLAYING && nextLink != null) //if it is not loading, start the load
+			if(playerState == PlayerState.PLAYING) //if it is not loading, start the load
 			{
 				playerState = PlayerState.BGLOADING;
 				loadVideo(nextLink, function(){
@@ -253,9 +234,9 @@ function playerTimeHandler()
 					{
 						playerState = PlayerState.LOADED; // then wait to change it
 					}
-					else if(playerState == PlayerState.LOADING) //If it already made it to the end and is at the loading screen
+					else if(playerState == PlayerState.LOADING)
 					{
-						playerState = PlayerState.CHANGING; //change now
+						playerState = PlayerState.CHANGING;
 						changeSource(vidSource);
 					}
 				});
@@ -287,26 +268,29 @@ function playerTimeHandler()
 function addSkipHandlers()
 {
 	document.addEventListener("ka-playNext", function() { 
-		if(playerState == PlayerState.PLAYING && nextLink != null) //If the video is playing, go to the load spinner screen and load the video
+		if(nextLink != null)
 		{
-			playerState = PlayerState.LOADING;
-			unloadVideo();
-			loadVideo(nextLink, function(){
+			if(playerState == PlayerState.PLAYING) //If the video is playing, go to the load spinner screen and load the video
+			{
+				playerState = PlayerState.LOADING;
+				unloadVideo();
+				loadVideo(nextLink, function(){
+					changeSource(vidSource);
+					playerState = PlayerState.CHANGING;
+				});
+			}
+			else if(playerState == PlayerState.BGLOADING) //If the video is already loading in the background, just show the loading screen
+			{
+				playerState = PlayerState.LOADING;
+				unloadVideo();
+			}
+			else if(playerState == PlayerState.LOADED) //If the video is already loaded, just change the video
+			{
 				changeSource(vidSource);
 				playerState = PlayerState.CHANGING;
-			});
+			}
+			//Otherwise do nothing since the video is either loading or changing
 		}
-		else if(playerState == PlayerState.BGLOADING) //If the video is already loading in the background, just show the loading screen
-		{
-			playerState = PlayerState.LOADING;
-			unloadVideo();
-		}
-		else if(playerState == PlayerState.LOADED) //If the video is already loaded, just change the video
-		{
-			changeSource(vidSource);
-			playerState = PlayerState.CHANGING;
-		}
-		//Otherwise do nothing since the video is either loading or changing
 	});	
 
 	document.addEventListener("ka-playPrev", function() { 
@@ -316,38 +300,24 @@ function addSkipHandlers()
 			{
 				playerState = PlayerState.INTERRUPT;
 				unloadVideo();
-				if(!isACurrentSource(player.currentSrc())) //If it already loaded the video ahead
-				{
-					loadVideo(prevPrevLink, function() 
+				loadVideo(prevLink, function(){
+					if(player.currentSrc() == vidSource) //If it already loaded the video ahead
+					{
+						loadVideo(prevLink, function() //you have to do it twice :(
+						{
+							changeSource(vidSource);
+							playerState = PlayerState.CHANGING;
+						});
+					}
+					else //Otherwise you are good
 					{
 						changeSource(vidSource);
 						playerState = PlayerState.CHANGING;
-					});
-				}
-				else
-				{
-					loadVideo(prevLink, function() 
-					{
-						changeSource(vidSource);
-						playerState = PlayerState.CHANGING;
-					});
-				}
+					}
+				});
 			}
 		}
 	});		
-}
-
-//Description: Utility to skip handlers. Tells if the src is one of the current ones loaded
-function isACurrentSource(src)
-{
-	for(i = 0;i < vidSource.length; i++)
-	{
-		if(vidSource[i]["src"] == src)
-		{
-			return true;
-		}
-	}
-	return false;
 }
 
 //Description: Greys out the skip button if the 
@@ -381,13 +351,8 @@ function hideSkipButtons()
 	player.controlBar.NextVideoButton.el_.classList.add("vjs-hidden");
 	player.controlBar.PrevVideoButton.el_.classList.add("vjs-hidden");
 }
-
-// Description: Loads the resolution plugin into the player
-function loadResolutionPlugin()
-{
-	player.videoJsResolutionSwitcher({ default: 'high', dynamicLabel: false });
-}
-
+// Description: loads the next video into the player
+// Preconditions: video player must already be open!
 
 
 /**************************************
@@ -403,7 +368,6 @@ function loadVideo(url, callback)
 	{ 
 		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 		{
-			vidSource = getAllSources(i);
 			getVideoFromFrame(i);
 			clearInterval(interval);
 			if(callback != null)
@@ -424,7 +388,8 @@ function createIFrame(url)
 	var i = document.getElementById("hiddenDisplay");
 	if(i)
 	{
-		i.contentWindow.location.replace(url);
+		i.src = url;
+		return i;
 	}
 	else
 	{
@@ -433,68 +398,8 @@ function createIFrame(url)
 		i.style.display = 'none';
 		i.src = url;
 		document.body.appendChild(i);	
+		return i;
 	}
-	chrome.runtime.sendMessage({"url": url});
-	return i;
-}
-
-//Description: Sets the quality before grabbing source -- no longer used
-function setQuality(i, quality)
-{
-	//var qualNum = { 1080p:0, 720p:1, 480p:2, 360p:3, 240p:4 };
-	var qualNum = {};
-	qualNum["1080p"] = 0;
-	qualNum["720p"] = 1;
-	qualNum["480p"] = 2;
-	qualNum["360p"] = 3;
-	qualNum["240p"] = 4;
-	
-	var res = i.contentWindow.document.getElementById("selectQuality");
-	var e = new Event("change");
-	var optionNum = 0;
-	for(i = 0; i < res.options.length; i++)
-	{
-		if(qualNum[quality] <= qualNum[res.options[i].innerHTML])
-		{
-			console.log(quality + " = " + res.options[i].innerHTML);
-			optionNum = i;
-			break;
-		}
-		else
-		{
-			console.log(quality + " != " + res.options[i].innerHTML);
-		}
-	}
-	console.log(optionNum);
-	res.options[optionNum].selected = true;
-	res.dispatchEvent(e);	
-}
-
-// Description: Gets all of the sources from the video, returns array
-function getAllSources(i)
-{
-	var res = i.contentWindow.document.getElementById("selectQuality");
-	var vid = i.contentWindow.document.getElementById("my_video_1_html5_api");
-	var e = new Event("change");
-	var currSrc = vid.src;
-	var currOpt = res.options.selectedIndex;
-	var sources = [];
-	
-	for(i = 0; i < res.options.length; i++)
-	{
-		res.options[i].selected = true;
-		res.dispatchEvent(e);	
-		while(true)
-		{
-			if(vid.src != currSrc || res.options.selectedIndex ==  0) //if it changed, or it started on the default
-			{
-				sources.push({src: vid.src, type: 'video/mp4', label: res.options[i].innerHTML});
-				currSrc = vid.src;
-				break;
-			}
-		}
-	}
-	return sources;
 }
 
 // Description: Grabs the video source from the episode page 
@@ -503,13 +408,10 @@ function getVideoFromFrame(i)
 	var vid = i.contentWindow.document.getElementById("my_video_1_html5_api");
 	vid.pause();
 	player.el_.focus();
-	//vidSource = vid.src;
+	vidSource = vid.src;
 	vid.removeAttribute("src");
-	
-	
-	
 	//vid.load(); //reload with no source so it doesn't keep buffering
-	//vid.parentElement.removeChild(vid);
+	vid.parentElement.removeChild(vid);
 	//set title
 	episodeTitle = trimTitle(i.contentWindow.document.title);
 	//set nextLink
@@ -526,7 +428,6 @@ function getVideoFromFrame(i)
 	var prev = i.contentWindow.document.getElementById('btnPrevious');
 	if(prev)
 	{
-		prevPrevLink = prevLink;
 		prevLink = prev.parentElement.href;
 	}
 	else
@@ -550,66 +451,8 @@ function trimTitle(title)
 //Description: loads the source into the player and beings playing
 function changeSource(src)
 {
-	getQualityIndex(function(index){
-		player.el_.classList.remove('vjs-seeking'); //in case we were on a loading screen (will come back if actualy loading still needs to be done)
-		
-		//Unnecessary to split them up, but I don't feel like testing more. Just use updateSrcSelected in the future.
-		if(index != 0)
-		{
-			player.updateSrcSelected(src, index);
-		}
-		else
-		{
-			player.updateSrc(src);
-		}
-	});
-}
-
-function resizeIfNecessary()
-{
-	var vid = document.getElementsByTagName("video")[0];
-	var aspect_ratio = player.videoWidth()/player.videoHeight();
-		
-	console.log(vid.videoWidth);
-	console.log(vid.videoHeight);
-	console.log(aspect_ratio);
-	console.log(16/9);
-	if(aspect_ratio - (16/9) <= -.1 || aspect_ratio - (16/9) >= .1) //if the video is not 16:9
-	{
-		console.log("changing...");
-		var newWidth = aspect_ratio * player.videoHeight();
-		console.log(newWidth);
-		//player.dimension("width", Math.round(newWidth));
-		//vid.setAttribute("width", Math.round(newWidth));
-		player.width(Math.round(newWidth));
-	}
-	else{ console.log("its fine");}
-}
-// Description: gets the index of the saved resolution it should be at
-function getQualityIndex(callback)
-{
-	chrome.storage.local.get({resolution: "720p"}, function(item) {
-		var qualNum = {};
-		qualNum["1080p"] = 0;
-		qualNum["720p"] = 1;
-		qualNum["480p"] = 2;
-		qualNum["360p"] = 3;
-		qualNum["240p"] = 4;
-		
-		var optionNum = vidSource.length-1;
-		for(i = 0; i < vidSource.length; i++)
-		{
-			if(qualNum[item.resolution] <= qualNum[vidSource[i]["label"]])
-			{
-				optionNum = i;
-				break;
-			}
-		}
-		if(callback)
-		{
-			callback(optionNum);
-		}
-	});
+	elem.classList.remove('vjs-seeking'); //in case we were on a loading screen (will come back if actualy loading still needs to be done)
+	player.src(src);
 }
 
 // Description: Stops the video. Displays black with a loading circle. 
