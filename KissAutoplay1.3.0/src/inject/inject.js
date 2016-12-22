@@ -99,7 +99,6 @@ function createVideo()
 	vid.setAttribute( "id", "lightbox_video" );
 	vid.setAttribute( "width", "1280" );
 	vid.setAttribute( "height", "720" );
-	//vid.setAttribute( "data-autoresize", "fit");
 	chrome.storage.local.get({dataSkin: "dark"}, function(i) {
 			if(i.dataSkin == "dark" || i.dataSkin == "light")
 			{
@@ -107,17 +106,6 @@ function createVideo()
 			}
 	});
 		
-	var vid2 = document.createElement("video");
-	vid2.setAttribute( "id", "lightbox_video_4_3" );
-	vid2.setAttribute( "width", "960" );
-	vid2.setAttribute( "height", "720" );
-	//vid.setAttribute( "data-autoresize", "fit");
-	chrome.storage.local.get({dataSkin: "dark"}, function(i) {
-			if(i.dataSkin == "dark" || i.dataSkin == "light")
-			{
-				vid2.setAttribute( "data-skin", i.dataSkin );
-			}
-	});
 	//<a>
 	var btn = document.createElement("a");
 	btn.style.display = 'none';
@@ -125,17 +113,9 @@ function createVideo()
 	btn.setAttribute( "href", "#lightbox_video");
 	btn.setAttribute( "class", "afterglow" );
 	
-	var btn2 = document.createElement("a");
-	btn2.style.display = 'none';
-	btn2.setAttribute( "id", "launch_video_4_3");
-	btn2.setAttribute( "href", "#lightbox_video_4_3");
-	btn2.setAttribute( "class", "afterglow" );
-	
 	//Add to document
 	document.body.appendChild(vid);
-	document.body.appendChild(vid2);
 	document.body.appendChild(btn);
-	document.body.appendChild(btn2);
 }
 
 // Description: Creates the title element
@@ -175,28 +155,18 @@ function addEpisodeHandlers()
 // Description: Called when an episode link is clicked. Launches lightbox video, adds video  and loads video
 function clickVideoHandler()
 {
-	openLightbox('launch_video', 'lightbox_video', null);
-	loadVideo(this.href, function(){
-		changeSource(vidSource);
-	}); //load the video of the link clicked on
-}
-
-function openLightbox(btnId, playerId, callback)
-{
 	playerState = PlayerState.CHANGING;
-	document.getElementById(btnId).click();
-	addVideoHandler(playerId, function(){ //run this code while it waits to get video source
+	document.getElementById('launch_video').click();
+	addVideoHandler(function(){ //run this code while it waits to get video source
 		elem = player.el_;
 		player.play(); //get rid of big play button
 		elem.classList.add('vjs-seeking'); //show loading circle	
 		createTitle();
-		console.log("done");
-		if(callback)
-		{
-			callback();
-		}
 		//player.requestFullscreen(); //auto fullscreen. possible option?
 	});
+	loadVideo(this.href, function(){
+		changeSource(vidSource);
+	}); //load the video of the link clicked on
 }
 
 
@@ -205,12 +175,12 @@ function openLightbox(btnId, playerId, callback)
 **************************************/
 
 // Description: Adds the handler so the player knows when to switch to the next video
-function addVideoHandler(playerName, callback)
+function addVideoHandler(callback)
 {
 	var counter = 0;
 	
 	var interval = setInterval(function(){
-		player = afterglow.getPlayer(playerName);
+		player = afterglow.getPlayer("lightbox_video");
 		if(player) //If the player exists, add an event handler to it
 		{
 			clearInterval(interval); //Stop looping
@@ -280,9 +250,9 @@ function playerTimeHandler()
 					{
 						playerState = PlayerState.LOADED; // then wait to change it
 					}
-					else if(playerState == PlayerState.LOADING) //If it already made it to the end and is at the loading screen
+					else if(playerState == PlayerState.LOADING)
 					{
-						playerState = PlayerState.CHANGING; //change now
+						playerState = PlayerState.CHANGING;
 						changeSource(vidSource);
 					}
 				});
@@ -304,7 +274,6 @@ function playerTimeHandler()
 				player.currentTime(i.skipFirst);
 				playerState = PlayerState.PLAYING;
 			});
-			resizeIfNecessary();
 			updateSkipButtons();
 			setTitle(episodeTitle);
 		}
@@ -427,14 +396,10 @@ function loadVideo(url, callback)
 {
 	var i = createIFrame(url);
 	var count = 0;
-	console.log("url is");
-	console.log(url);
-	setTimeout(function(){console.log(i.contentWindow.document);}, 5000);
 	var interval = setInterval(function()
 	{ 
 		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 		{
-			console.log("found something");
 			vidSource = getAllSources(i);
 			getVideoFromFrame(i);
 			clearInterval(interval);
@@ -526,7 +491,6 @@ function getAllSources(i)
 			}
 		}
 	}
-	console.log(sources);
 	return sources;
 }
 
@@ -583,7 +547,6 @@ function trimTitle(title)
 //Description: loads the source into the player and beings playing
 function changeSource(src)
 {
-	console.log(src);
 	getQualityIndex(function(index){
 		player.el_.classList.remove('vjs-seeking'); //in case we were on a loading screen (will come back if actualy loading still needs to be done)
 		
@@ -599,28 +562,6 @@ function changeSource(src)
 	});
 }
 
-function resizeIfNecessary()
-{
-	var vid = document.getElementsByTagName("video")[0];
-	var aspect_ratio = player.videoWidth()/player.videoHeight();
-		
-	console.log(vid.videoWidth);
-	console.log(vid.videoHeight);
-	console.log(aspect_ratio);
-	console.log(16/9);
-	if(aspect_ratio - (16/9) <= -.1 || aspect_ratio - (16/9) >= .1 && player == afterglow.getPlayer("lightbox_video")) //if the video is not 16:9
-	{
-		console.log("resizing...");
-		afterglow.closeLightbox();
-		openLightbox('launch_video_4_3', 'lightbox_video_4_3', function(){
-			changeSource(vidSource);
-			setTitle(episodeTitle);
-			playerState = PlayerState.CHANGING;
-		});
-		//player = afterglow.getPlayer("lightbox_video_4_3");
-	}
-	else{ console.log("its fine");}
-}
 // Description: gets the index of the saved resolution it should be at
 function getQualityIndex(callback)
 {

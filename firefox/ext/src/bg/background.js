@@ -22,7 +22,7 @@
 });*/
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-	regKA = /http:\/\/kissanime.to\/Anime\/(.*)/g;
+	regKA = /http:\/\/kissanime.ru\/Anime\/(.*)/g;
 	regKC = /http:\/\/kisscartoon.me\/Cartoon\/(.*)/g
 	var matchesKA = regKA.exec(tab.url);
 	var matchesKC = regKC.exec(tab.url);
@@ -38,7 +38,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 
 chrome.runtime.onMessage.addListener(function(request, sender)
 {
-	console.log("hello, hello");
+	//console.log("hello, hello");
 	console.log(request.url);
 	if(request.url)
 	{
