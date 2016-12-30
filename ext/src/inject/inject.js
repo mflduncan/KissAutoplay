@@ -178,6 +178,7 @@ function clickVideoHandler()
 	openLightbox('launch_video', 'lightbox_video', null);
 	loadVideo(this.href, function(){
 		changeSource(vidSource);
+		resizeIfNecessary();
 	}); //load the video of the link clicked on
 }
 
@@ -304,7 +305,6 @@ function playerTimeHandler()
 				player.currentTime(i.skipFirst);
 				playerState = PlayerState.PLAYING;
 			});
-			resizeIfNecessary();
 			updateSkipButtons();
 			setTitle(episodeTitle);
 		}
@@ -601,25 +601,33 @@ function changeSource(src)
 
 function resizeIfNecessary()
 {
+	
+		
+	var interval = setInterval(function(){
 	var vid = document.getElementsByTagName("video")[0];
 	var aspect_ratio = player.videoWidth()/player.videoHeight();
-		
+
 	console.log(vid.videoWidth);
 	console.log(vid.videoHeight);
 	console.log(aspect_ratio);
 	console.log(16/9);
-	if(aspect_ratio - (16/9) <= -.1 || aspect_ratio - (16/9) >= .1 && player == afterglow.getPlayer("lightbox_video")) //if the video is not 16:9
+	if(aspect_ratio)
 	{
-		console.log("resizing...");
-		afterglow.closeLightbox();
-		openLightbox('launch_video_4_3', 'lightbox_video_4_3', function(){
-			changeSource(vidSource);
-			setTitle(episodeTitle);
-			playerState = PlayerState.CHANGING;
-		});
-		//player = afterglow.getPlayer("lightbox_video_4_3");
+		clearInterval(interval);
+		if(aspect_ratio - (16/9) <= -.1 || aspect_ratio - (16/9) >= .1 && player != afterglow.getPlayer("lightbox_video_4_3")) //if the video is not 16:9
+		{
+			console.log("resizing...");
+			afterglow.closeLightbox();
+			openLightbox('launch_video_4_3', 'lightbox_video_4_3', function(){
+				changeSource(vidSource);
+				setTitle(episodeTitle);
+				playerState = PlayerState.CHANGING;
+			});
+			//player = afterglow.getPlayer("lightbox_video_4_3");
+		}
+		else{ console.log("its fine");}
 	}
-	else{ console.log("its fine");}
+	}, 100);
 }
 // Description: gets the index of the saved resolution it should be at
 function getQualityIndex(callback)
