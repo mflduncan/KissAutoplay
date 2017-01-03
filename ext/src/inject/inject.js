@@ -65,7 +65,8 @@ chrome.extension.sendMessage({}, function(response) {
 		// ----------------------------------------------------------
 		
 		//load user setting to see if extension is off
-		chrome.storage.local.get({enabled: true}, function(items) {
+		/*chrome.storage.local.get({enabled: true}, function(items) {
+		
 			if(items.enabled == false) //the extension is turned off
 			{
 				console.log("KissAutoplay turned off");
@@ -73,6 +74,7 @@ chrome.extension.sendMessage({}, function(response) {
 			else //the extension is on, so inject into the page
 			{
 				console.log("KissAutoplay now running");
+				chrome.storage.local.set({'enabled': false}, null);
 				createVideo(); //create the elements needed on the page
 				addEpisodeHandlers(); //add handlers so the links don't change the page
 				addSkipHandlers(); //add handlers for the skip button in player
@@ -82,11 +84,52 @@ chrome.extension.sendMessage({}, function(response) {
 				e.initEvent("ka-started", true, true);
 				window.document.dispatchEvent(e);
 			}
-		});
+		});*/
+		checkEnabled();
 	}
 	}, 10);
 });
 
+function checkEnabled()
+{
+	chrome.storage.local.get({enabled: true, whitelistOperation: 0, disabledSites: {}}, function(items) {
+		if(items.whitelistOperation == 1)
+		{
+			items.disabledSites[window.location.pathname] = true;
+			items.enabled = false;
+			
+		}
+		else if(items.whitelistOperation == -1)
+		{
+			delete items.disabledSites[window.location.pathname];
+			items.enabled = true;
+		}
+		
+		chrome.storage.local.set({'enabled': items.enabled, 'disabledSites': items.disabledSites, 'whitelistOperation': 0}, null);
+		if(items.disabledSites[window.location.pathname])
+		{
+			console.log("KissAutoplay turned off");
+		}		
+		else
+		{
+			init();
+		}
+	});
+}
+
+function init()
+{
+	console.log("KissAutoplay now running");
+	chrome.storage.local.set({'enabled': false}, null);
+	createVideo(); //create the elements needed on the page
+	addEpisodeHandlers(); //add handlers so the links don't change the page
+	addSkipHandlers(); //add handlers for the skip button in player
+
+	//fire the event so the Afterglow player looks for the video
+	var e = document.createEvent("CustomEvent");
+	e.initEvent("ka-started", true, true);
+	window.document.dispatchEvent(e);
+}
 
 /**************************************
 			Page Setup
