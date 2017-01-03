@@ -85,28 +85,16 @@ chrome.extension.sendMessage({}, function(response) {
 				window.document.dispatchEvent(e);
 			}
 		});*/
-		checkEnabled();
+		initIfEnabled();
 	}
 	}, 10);
 });
 
-function checkEnabled()
+function initIfEnabled()
 {
-	chrome.storage.local.get({enabled: true, whitelistOperation: 0, disabledSites: {}}, function(items) {
-		if(items.whitelistOperation == 1)
-		{
-			items.disabledSites[window.location.pathname] = true;
-			items.enabled = false;
-			
-		}
-		else if(items.whitelistOperation == -1)
-		{
-			delete items.disabledSites[window.location.pathname];
-			items.enabled = true;
-		}
+	chrome.storage.local.get({disabledSites: {}}, function(items) {
 		
-		chrome.storage.local.set({'enabled': items.enabled, 'disabledSites': items.disabledSites, 'whitelistOperation': 0}, null);
-		if(items.disabledSites[window.location.pathname])
+		if(items.disabledSites[window.location.href])
 		{
 			console.log("KissAutoplay turned off");
 		}		
@@ -120,7 +108,7 @@ function checkEnabled()
 function init()
 {
 	console.log("KissAutoplay now running");
-	chrome.storage.local.set({'enabled': false}, null);
+	//chrome.storage.local.set({'enabled': false}, null);
 	createVideo(); //create the elements needed on the page
 	addEpisodeHandlers(); //add handlers so the links don't change the page
 	addSkipHandlers(); //add handlers for the skip button in player
@@ -509,6 +497,7 @@ function createIFrame(url)
 		i.src = url;
 		document.body.appendChild(i);	
 	}
+	console.log("wtf");
 	chrome.extension.sendMessage({"url": url});
 	return i;
 }
