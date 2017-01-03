@@ -5,8 +5,6 @@
 	Possible updates:
 		- sub/dub switch
 		- make title a link
-		- make power button page specific
-		
 		
 	Decided against:
 		- auto fullscreen option because offers little utility and inconsitent with almost any video player ever
@@ -17,6 +15,8 @@
 			*possibly a this show/global tab in the menu?
 		
 	Done:
+		- make power button page specific
+		- 4:3 aspect ratio support
 		- remember quality settings
 		- fix back button
 		- change video quality button
@@ -41,6 +41,7 @@ var player = null;
 var nextLink = null;
 var prevLink = null;
 var prevPrevLink = null;
+var currLink = null;
 var vidSource = [];
 var episodeTitle = "Loading..";
 
@@ -65,26 +66,6 @@ chrome.extension.sendMessage({}, function(response) {
 		// ----------------------------------------------------------
 		
 		//load user setting to see if extension is off
-		/*chrome.storage.local.get({enabled: true}, function(items) {
-		
-			if(items.enabled == false) //the extension is turned off
-			{
-				console.log("KissAutoplay turned off");
-			}
-			else //the extension is on, so inject into the page
-			{
-				console.log("KissAutoplay now running");
-				chrome.storage.local.set({'enabled': false}, null);
-				createVideo(); //create the elements needed on the page
-				addEpisodeHandlers(); //add handlers so the links don't change the page
-				addSkipHandlers(); //add handlers for the skip button in player
-				
-				//fire the event so the Afterglow player looks for the video
-				var e = document.createEvent("CustomEvent");
-				e.initEvent("ka-started", true, true);
-				window.document.dispatchEvent(e);
-			}
-		});*/
 		initIfEnabled();
 	}
 	}, 10);
@@ -172,13 +153,15 @@ function createVideo()
 // Description: Creates the title element
 function createTitle()
 {
-	var title = document.createElement("div");
+	var container = document.createElement("div");
+	var title = document.createElement("a");
 	title.textContent = "Loading...";
-	title.classList.add("ka-episode-title");
+	container.classList.add("ka-episode-title");
 	title.id = "kaEpisodeTitle";
 	
 	var lightbox = document.getElementsByClassName("afterglow-lightbox-wrapper")[0];
-	lightbox.appendChild(title);
+	container.appendChild(title);
+	lightbox.appendChild(container);
 }
 
 // Description: Sets the title element
@@ -186,6 +169,7 @@ function setTitle(newTitle)
 {
 	var title = document.getElementById("kaEpisodeTitle");
 	title.textContent = newTitle;
+	title.href = currLink;
 }
 
 // Description: Overrides the behavior of the links to episodes
@@ -222,7 +206,6 @@ function openLightbox(btnId, playerId, callback)
 		player.play(); //get rid of big play button
 		elem.classList.add('vjs-seeking'); //show loading circle	
 		createTitle();
-		console.log("done");
 		if(callback)
 		{
 			callback();
@@ -457,15 +440,12 @@ function loadResolutionPlugin()
 function loadVideo(url, callback)
 {
 	var i = createIFrame(url);
+	currLink = url;
 	var count = 0;
-	console.log("url is");
-	console.log(url);
-	setTimeout(function(){console.log(i.contentWindow.document);}, 5000);
 	var interval = setInterval(function()
 	{ 
 		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 		{
-			console.log("found something");
 			vidSource = getAllSources(i);
 			getVideoFromFrame(i);
 			clearInterval(interval);
@@ -497,7 +477,6 @@ function createIFrame(url)
 		i.src = url;
 		document.body.appendChild(i);	
 	}
-	console.log("wtf");
 	chrome.extension.sendMessage({"url": url});
 	return i;
 }
@@ -558,7 +537,6 @@ function getAllSources(i)
 			}
 		}
 	}
-	console.log(sources);
 	return sources;
 }
 
@@ -615,7 +593,6 @@ function trimTitle(title)
 //Description: loads the source into the player and beings playing
 function changeSource(src)
 {
-	console.log(src);
 	getQualityIndex(function(index){
 		player.el_.classList.remove('vjs-seeking'); //in case we were on a loading screen (will come back if actualy loading still needs to be done)
 		
@@ -639,16 +616,12 @@ function resizeIfNecessary()
 	var vid = document.getElementsByTagName("video")[0];
 	var aspect_ratio = player.videoWidth()/player.videoHeight();
 
-	console.log(vid.videoWidth);
-	console.log(vid.videoHeight);
-	console.log(aspect_ratio);
-	console.log(16/9);
 	if(aspect_ratio)
 	{
 		clearInterval(interval);
 		if(aspect_ratio - (16/9) <= -.1 || aspect_ratio - (16/9) >= .1 && player != afterglow.getPlayer("lightbox_video_4_3")) //if the video is not 16:9
 		{
-			console.log("resizing...");
+			console.log("Resizing video...");
 			afterglow.closeLightbox();
 			openLightbox('launch_video_4_3', 'lightbox_video_4_3', function(){
 				changeSource(vidSource);
@@ -657,7 +630,6 @@ function resizeIfNecessary()
 			});
 			//player = afterglow.getPlayer("lightbox_video_4_3");
 		}
-		else{ console.log("its fine");}
 	}
 	}, 100);
 }
