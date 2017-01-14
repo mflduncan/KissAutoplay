@@ -11,7 +11,10 @@ chrome.runtime.onInstalled.addListener(function() {
 				pageUrl: { urlMatches: 'http://kissanime.ru/Anime/*' }
 			}),
 				new chrome.declarativeContent.PageStateMatcher({
-				pageUrl: { urlMatches: 'http://kisscartoon.se/Cartoon/*' }
+				pageUrl: { urlMatches: 'http://kisscartoon.me/Cartoon/*' }
+			}),
+				new chrome.declarativeContent.PageStateMatcher({
+				pageUrl: { urlMatches: 'http://kissasian.com/Drama/*' }
 			})
 			],
 				// And shows the extension's page action.

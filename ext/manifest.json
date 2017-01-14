@@ -1,6 +1,6 @@
 {
   "name": "Kiss Autoplay",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "manifest_version": 2,
   "description": "Autoplay KissAnime and KissCartoon episodes anti-adblock free in a beautiful fullscreen player-- no F11 required!",
   "homepage_url": "https://www.reddit.com/r/KissAutoplay",
@@ -26,10 +26,10 @@
   "content_scripts": [
     {
       "matches": [
-        "http://kissanime.ru/Anime/*", "http://kisscartoon.se/Cartoon/*"
+        "http://kissanime.ru/Anime/*", "http://kisscartoon.me/Cartoon/*", "http://kissasian.com/Drama/*"
       ],
 	  "exclude_matches": [
-        "http://kissanime.ru/Anime/*/*", "http://kisscartoon.se/Cartoon/*/*"
+        "http://kissanime.ru/Anime/*/*", "http://kisscartoon.me/Cartoon/*/*", "http://kissasian.com/Drama/*/*"
       ],
 	  "css": [
 	    "src/inject/inject.css"

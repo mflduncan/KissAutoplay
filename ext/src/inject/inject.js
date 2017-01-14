@@ -619,7 +619,7 @@ function resizeIfNecessary()
 	if(aspect_ratio)
 	{
 		clearInterval(interval);
-		if(aspect_ratio - (16/9) <= -.1 || aspect_ratio - (16/9) >= .1 && player != afterglow.getPlayer("lightbox_video_4_3")) //if the video is not 16:9
+		if(aspect_ratio - (4/3) >= -.1 && aspect_ratio - (4/3) <= .1 && player != afterglow.getPlayer("lightbox_video_4_3")) //if the video is not 16:9
 		{
 			console.log("Resizing video...");
 			afterglow.closeLightbox();
