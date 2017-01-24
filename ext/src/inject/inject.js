@@ -436,35 +436,44 @@ function loadResolutionPlugin()
 			Data fetching
 **************************************/
 
-// Description: Grabs the source of the next episode and calls callback
 function loadVideo(url, callback)
 {
 	var i = createIFrame(url);
 	currLink = url;
 	var count = 0;
 	var interval = setInterval(function()
-	{ 
-		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
-		{
-			vidSource = getAllSources(i);
-			getVideoFromFrame(i);
-			clearInterval(interval);
-			if(callback != null)
+	{
+		try{
+			if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 			{
-				callback();
+				vidSource = getAllSources(i);
+				getVideoFromFrame(i);
+				clearInterval(interval);
+				if(callback != null)
+				{
+					callback();
+				}
+			}
+		}catch(e){
+			if(i.src && i.src != url) //if it was redirected
+			{
+				console.log("redirected");
+			}
+			else if(i.src.includes("kisscartoon"))
+			{
+				alert("KissAutoplay Error -- Cannot load video. This may be due to your adblocker blocking KissCartoon. Try whitelisting KissCartoon or disabling the filter that marks kisscartoon.se as ad content.");
+				afterglow.closeLightbox();
+				clearInterval(interval);
+				return;
 			}
 		}
-		/*if(i.src && i.src.includes("AreYouHuman") //if you are spamming too much
-		{
-			
-		}*/
 	}, 50);
 }
 
 // Description: Creates the IFrame used to grab the video source
 function createIFrame(url)
 {
-	var i = document.getElementById("hiddenDisplay");
+	var i = document.getElementById("kaFrame");
 	if(i)
 	{
 		i.contentWindow.location.replace(url);
@@ -472,7 +481,7 @@ function createIFrame(url)
 	else
 	{
 		i = document.createElement('iframe');
-		i.id = 'hiddenDisplay';
+		i.id = 'kaFrame';
 		i.style.display = 'none';
 		i.src = url;
 		document.body.appendChild(i);	

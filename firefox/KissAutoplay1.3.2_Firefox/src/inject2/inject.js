@@ -365,26 +365,14 @@ function loadVideo(url, callback)
 	var i = createIFrame(url);
 	var count = 0;
 	var interval = setInterval(function()
-	{
-		try
+	{ 
+		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 		{
-			if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
+			getVideoFromFrame(i);
+			clearInterval(interval);
+			if(callback != null)
 			{
-				getVideoFromFrame(i);
-				clearInterval(interval);
-				if(callback != null)
-				{
-					callback();
-				}
-			}
-		} catch (e) {
-			if(i.src && i.src != url) //if it was redirected
-			{
-				
-			}
-			else if(i.src.includes("kisscartoon"))
-			{
-				alert("Error loading video. This may be due to your adblocker blacklisting KissCartoon. Try whitelisting or disabling the filter that marks kisscartoon.se as ad content.");
+				callback();
 			}
 		}
 		/*if(i.src && i.src.includes("AreYouHuman") //if you are spamming too much
