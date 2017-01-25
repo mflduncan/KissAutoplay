@@ -448,6 +448,8 @@ function loadVideo(url, callback)
 			{
 				vidSource = getAllSources(i);
 				getVideoFromFrame(i);
+				window.stop();
+				
 				clearInterval(interval);
 				if(callback != null)
 				{
@@ -457,7 +459,10 @@ function loadVideo(url, callback)
 		}catch(e){
 			if(i.src && i.src != url) //if it was redirected
 			{
-				console.log("redirected");
+				console.log("redirected from " + url + " to " + i.src);
+				window.location.href = i.src;
+				clearInterval(interval);
+				return;
 			}
 			else if(i.src.includes("kisscartoon"))
 			{
