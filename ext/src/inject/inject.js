@@ -453,6 +453,7 @@ function loadVideo(url, callback)
 				clearInterval(interval);
 				if(callback != null)
 				{
+					console.log("done here");
 					callback();
 				}
 			}
@@ -470,6 +471,10 @@ function loadVideo(url, callback)
 				afterglow.closeLightbox();
 				clearInterval(interval);
 				return;
+			}
+			else
+			{
+				console.log(e);
 			}
 		}
 	}, 50);
@@ -530,7 +535,10 @@ function setQuality(i, quality)
 // Description: Gets all of the sources from the video, returns array
 function getAllSources(i)
 {
-	var res = i.contentWindow.document.getElementById("selectQuality");
+	var qualStr = "selectQuality";
+	if(window.location.host.includes("kissanime"))
+		qualStr = "slcQualix";
+	var res = i.contentWindow.document.getElementById(qualStr);
 	var vid = i.contentWindow.document.getElementById("my_video_1_html5_api");
 	var e = new Event("change");
 	var currSrc = vid.src;
