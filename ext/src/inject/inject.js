@@ -1,3 +1,4 @@
+console.log("KissAutoplay extension inject page");
 /*
 	To do:
 		- custom error page
@@ -54,6 +55,7 @@ var PlayerState = {
 	INTERRUPT: 5
 }
 var playerState = PlayerState.CHANGING;
+
 
 chrome.extension.sendMessage({}, function(response) {
 	var readyStateCheckInterval = setInterval(function() {
@@ -453,7 +455,6 @@ function loadVideo(url, callback)
 				clearInterval(interval);
 				if(callback != null)
 				{
-					console.log("done here");
 					callback();
 				}
 			}
@@ -578,17 +579,17 @@ function getVideoFromFrame(i)
 	//set title
 	episodeTitle = trimTitle(i.contentWindow.document.title);
 	//set nextLink
-	var nxt = i.contentWindow.document.getElementById('btnNext');
+	var nxt = i.contentWindow.document.getElementById('btnNext') || i.contentWindow.document.getElementById('Img2');
 	if(nxt)
 	{
 		nextLink = nxt.parentElement.href;
 	}
 	else
 	{
-		nextLink = null;
+			nextLink = null;
 	}
 	//set prevLink
-	var prev = i.contentWindow.document.getElementById('btnPrevious');
+	var prev = i.contentWindow.document.getElementById('btnPrevious') || i.contentWindow.document.getElementById('Img1');
 	if(prev)
 	{
 		prevPrevLink = prevLink;
@@ -596,7 +597,7 @@ function getVideoFromFrame(i)
 	}
 	else
 	{
-		prevLink = null;
+			prevLink = null;
 	}
 }
 

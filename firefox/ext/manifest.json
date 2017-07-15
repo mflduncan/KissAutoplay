@@ -21,10 +21,10 @@
   "content_scripts": [
     {
       "matches": [
-        "http://kissanime.ru/Anime/*", "http://kisscartoon.me/Cartoon/*"
+        "http://kissanime.ru/Anime/*", "http://kisscartoon.se/Cartoon/*", "http://kissasian.com/Drama/*"
       ],
 	  "exclude_matches": [
-        "http://kissanime.ru/Anime/*/*", "http://kisscartoon.me/Cartoon/*/*"
+        "http://kissanime.ru/Anime/*/*", "http://kisscartoon.se/Cartoon/*/*", "http://kissasian.com/Drama/*/*"
       ],
 	  "css": [
 	    "/src/inject/inject.css"

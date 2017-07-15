@@ -5,8 +5,6 @@
 	Possible updates:
 		- sub/dub switch
 		- make title a link
-		- make power button page specific
-		
 		
 	Decided against:
 		- auto fullscreen option because offers little utility and inconsitent with almost any video player ever
@@ -17,6 +15,8 @@
 			*possibly a this show/global tab in the menu?
 		
 	Done:
+		- make power button page specific
+		- 4:3 aspect ratio support
 		- remember quality settings
 		- fix back button
 		- change video quality button
@@ -41,6 +41,7 @@ var player = null;
 var nextLink = null;
 var prevLink = null;
 var prevPrevLink = null;
+var currLink = null;
 var vidSource = [];
 var episodeTitle = "Loading..";
 
@@ -56,7 +57,8 @@ var playerState = PlayerState.CHANGING;
 
 init();
 
-function init() {
+function init()
+{
 	var readyStateCheckInterval = setInterval(function() {
 	if (document.readyState === "interactive" || document.readyState === "complete") {
 		clearInterval(readyStateCheckInterval);
@@ -67,28 +69,39 @@ function init() {
 		// ----------------------------------------------------------
 		
 		//load user setting to see if extension is off
-		chrome.storage.local.get({enabled: true}, function(items) {
-			if(items.enabled == false) //the extension is turned off
-			{
-				console.log("KissAutoplay turned off");
-			}
-			else //the extension is on, so inject into the page
-			{
-				console.log("KissAutoplay now running");
-				createVideo(); //create the elements needed on the page
-				addEpisodeHandlers(); //add handlers so the links don't change the page
-				addSkipHandlers(); //add handlers for the skip button in player
-				
-				//fire the event so the Afterglow player looks for the video
-				var e = document.createEvent("CustomEvent");
-				e.initEvent("ka-started", true, true);
-				window.document.dispatchEvent(e);
-			}
-		});
+		initIfEnabled();
 	}
 	}, 10);
 }
 
+function initIfEnabled()
+{
+	chrome.storage.local.get({disabledSites: {}}, function(items) {
+		
+		if(items.disabledSites[window.location.href])
+		{
+			console.log("KissAutoplay turned off");
+		}		
+		else
+		{
+			init();
+		}
+	});
+}
+
+function init()
+{
+	console.log("KissAutoplay now running");
+	//chrome.storage.local.set({'enabled': false}, null);
+	createVideo(); //create the elements needed on the page
+	addEpisodeHandlers(); //add handlers so the links don't change the page
+	addSkipHandlers(); //add handlers for the skip button in player
+
+	//fire the event so the Afterglow player looks for the video
+	var e = document.createEvent("CustomEvent");
+	e.initEvent("ka-started", true, true);
+	window.document.dispatchEvent(e);
+}
 
 /**************************************
 			Page Setup
@@ -109,6 +122,17 @@ function createVideo()
 			}
 	});
 		
+	var vid2 = document.createElement("video");
+	vid2.setAttribute( "id", "lightbox_video_4_3" );
+	vid2.setAttribute( "width", "960" );
+	vid2.setAttribute( "height", "720" );
+	//vid.setAttribute( "data-autoresize", "fit");
+	chrome.storage.local.get({dataSkin: "dark"}, function(i) {
+			if(i.dataSkin == "dark" || i.dataSkin == "light")
+			{
+				vid2.setAttribute( "data-skin", i.dataSkin );
+			}
+	});
 	//<a>
 	var btn = document.createElement("a");
 	btn.style.display = 'none';
@@ -116,21 +140,31 @@ function createVideo()
 	btn.setAttribute( "href", "#lightbox_video");
 	btn.setAttribute( "class", "afterglow" );
 	
+	var btn2 = document.createElement("a");
+	btn2.style.display = 'none';
+	btn2.setAttribute( "id", "launch_video_4_3");
+	btn2.setAttribute( "href", "#lightbox_video_4_3");
+	btn2.setAttribute( "class", "afterglow" );
+	
 	//Add to document
 	document.body.appendChild(vid);
+	document.body.appendChild(vid2);
 	document.body.appendChild(btn);
+	document.body.appendChild(btn2);
 }
 
 // Description: Creates the title element
 function createTitle()
 {
-	var title = document.createElement("div");
+	var container = document.createElement("div");
+	var title = document.createElement("a");
 	title.textContent = "Loading...";
-	title.classList.add("ka-episode-title");
+	container.classList.add("ka-episode-title");
 	title.id = "kaEpisodeTitle";
 	
 	var lightbox = document.getElementsByClassName("afterglow-lightbox-wrapper")[0];
-	lightbox.appendChild(title);
+	container.appendChild(title);
+	lightbox.appendChild(container);
 }
 
 // Description: Sets the title element
@@ -138,6 +172,7 @@ function setTitle(newTitle)
 {
 	var title = document.getElementById("kaEpisodeTitle");
 	title.textContent = newTitle;
+	title.href = currLink;
 }
 
 // Description: Overrides the behavior of the links to episodes
@@ -158,18 +193,30 @@ function addEpisodeHandlers()
 // Description: Called when an episode link is clicked. Launches lightbox video, adds video  and loads video
 function clickVideoHandler()
 {
+	console.log("clicked");
+	openLightbox('launch_video', 'lightbox_video', null);
+	console.log("calling loadvideo");
+	loadVideo(this.href, function(){
+		changeSource(vidSource);
+		resizeIfNecessary();
+	}); //load the video of the link clicked on
+}
+
+function openLightbox(btnId, playerId, callback)
+{
 	playerState = PlayerState.CHANGING;
-	document.getElementById('launch_video').click();
-	addVideoHandler(function(){ //run this code while it waits to get video source
+	document.getElementById(btnId).click();
+	addVideoHandler(playerId, function(){ //run this code while it waits to get video source
 		elem = player.el_;
 		player.play(); //get rid of big play button
 		elem.classList.add('vjs-seeking'); //show loading circle	
 		createTitle();
+		if(callback)
+		{
+			callback();
+		}
 		//player.requestFullscreen(); //auto fullscreen. possible option?
 	});
-	loadVideo(this.href, function(){
-		changeSource(vidSource);
-	}); //load the video of the link clicked on
 }
 
 
@@ -178,12 +225,12 @@ function clickVideoHandler()
 **************************************/
 
 // Description: Adds the handler so the player knows when to switch to the next video
-function addVideoHandler(callback)
+function addVideoHandler(playerName, callback)
 {
 	var counter = 0;
 	
 	var interval = setInterval(function(){
-		player = afterglow.getPlayer("lightbox_video");
+		player = afterglow.getPlayer(playerName);
 		if(player) //If the player exists, add an event handler to it
 		{
 			clearInterval(interval); //Stop looping
@@ -394,34 +441,57 @@ function loadResolutionPlugin()
 			Data fetching
 **************************************/
 
-// Description: Grabs the source of the next episode and calls callback
 function loadVideo(url, callback)
 {
+	console.log("Loading video...");
 	var i = createIFrame(url);
+	console.log("Loading video again...");
+	currLink = url;
 	var count = 0;
 	var interval = setInterval(function()
-	{ 
-		if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
-		{
-			vidSource = getAllSources(i);
-			getVideoFromFrame(i);
-			clearInterval(interval);
-			if(callback != null)
+	{
+		try{
+			if(i.contentWindow &&i.contentWindow.document && i.contentWindow.document.getElementById("my_video_1_html5_api") && i.contentWindow.document.getElementById("my_video_1_html5_api").src && i.contentWindow.document.getElementById("my_video_1_html5_api").src != "")
 			{
-				callback();
+				console.log("finally in here");
+				vidSource = getAllSources(i);
+				getVideoFromFrame(i);
+				window.stop();
+				
+				clearInterval(interval);
+				if(callback != null)
+				{
+					console.log("done here");
+					callback();
+				}
+			}
+		}catch(e){
+			if(i.src && i.src != url) //if it was redirected
+			{
+				console.log("redirected from " + url + " to " + i.src);
+				window.location.href = i.src;
+				clearInterval(interval);
+				return;
+			}
+			else if(i.src.includes("kisscartoon"))
+			{
+				alert("KissAutoplay Error -- Cannot load video. This may be due to your adblocker blocking KissCartoon. Try whitelisting KissCartoon or disabling the filter that marks kisscartoon.se as ad content.");
+				afterglow.closeLightbox();
+				clearInterval(interval);
+				return;
+			}
+			else
+			{
+				console.log(e);
 			}
 		}
-		/*if(i.src && i.src.includes("AreYouHuman") //if you are spamming too much
-		{
-			
-		}*/
 	}, 50);
 }
 
 // Description: Creates the IFrame used to grab the video source
 function createIFrame(url)
 {
-	var i = document.getElementById("hiddenDisplay");
+	var i = document.getElementById("kaFrame");
 	if(i)
 	{
 		i.contentWindow.location.replace(url);
@@ -429,12 +499,14 @@ function createIFrame(url)
 	else
 	{
 		i = document.createElement('iframe');
-		i.id = 'hiddenDisplay';
+		i.id = 'kaFrame';
 		i.style.display = 'none';
 		i.src = url;
 		document.body.appendChild(i);	
 	}
-	chrome.runtime.sendMessage({"url": url});
+	console.log("before sendmessage");
+	browser.tabs.sendMessage({"url": url});
+	console.log("after sendmessage");
 	return i;
 }
 
@@ -473,7 +545,10 @@ function setQuality(i, quality)
 // Description: Gets all of the sources from the video, returns array
 function getAllSources(i)
 {
-	var res = i.contentWindow.document.getElementById("selectQuality");
+	var qualStr = "selectQuality";
+	if(window.location.host.includes("kissanime"))
+		qualStr = "slcQualix";
+	var res = i.contentWindow.document.getElementById(qualStr);
 	var vid = i.contentWindow.document.getElementById("my_video_1_html5_api");
 	var e = new Event("change");
 	var currSrc = vid.src;
@@ -494,6 +569,7 @@ function getAllSources(i)
 			}
 		}
 	}
+	console.log(sources);
 	return sources;
 }
 
@@ -567,23 +643,28 @@ function changeSource(src)
 
 function resizeIfNecessary()
 {
+	
+		
+	var interval = setInterval(function(){
 	var vid = document.getElementsByTagName("video")[0];
 	var aspect_ratio = player.videoWidth()/player.videoHeight();
-		
-	console.log(vid.videoWidth);
-	console.log(vid.videoHeight);
-	console.log(aspect_ratio);
-	console.log(16/9);
-	if(aspect_ratio - (16/9) <= -.1 || aspect_ratio - (16/9) >= .1) //if the video is not 16:9
+
+	if(aspect_ratio)
 	{
-		console.log("changing...");
-		var newWidth = aspect_ratio * player.videoHeight();
-		console.log(newWidth);
-		//player.dimension("width", Math.round(newWidth));
-		//vid.setAttribute("width", Math.round(newWidth));
-		player.width(Math.round(newWidth));
+		clearInterval(interval);
+		if(aspect_ratio - (4/3) >= -.1 && aspect_ratio - (4/3) <= .1 && player != afterglow.getPlayer("lightbox_video_4_3")) //if the video is not 16:9
+		{
+			console.log("Resizing video...");
+			afterglow.closeLightbox();
+			openLightbox('launch_video_4_3', 'lightbox_video_4_3', function(){
+				changeSource(vidSource);
+				setTitle(episodeTitle);
+				playerState = PlayerState.CHANGING;
+			});
+			//player = afterglow.getPlayer("lightbox_video_4_3");
+		}
 	}
-	else{ console.log("its fine");}
+	}, 100);
 }
 // Description: gets the index of the saved resolution it should be at
 function getQualityIndex(callback)

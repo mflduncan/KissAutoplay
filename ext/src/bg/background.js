@@ -11,7 +11,7 @@ chrome.runtime.onInstalled.addListener(function() {
 				pageUrl: { urlMatches: 'http://kissanime.ru/Anime/*' }
 			}),
 				new chrome.declarativeContent.PageStateMatcher({
-				pageUrl: { urlMatches: 'http://kisscartoon.se/Cartoon/*' }
+				pageUrl: { urlMatches: 'https://kimcartoon.me/Cartoon/*' }
 			}),
 				new chrome.declarativeContent.PageStateMatcher({
 				pageUrl: { urlMatches: 'http://kissasian.com/Drama/*' }

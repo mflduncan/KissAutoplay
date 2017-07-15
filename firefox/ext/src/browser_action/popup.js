@@ -1,8 +1,16 @@
 var power = true;
+var tabUrl = null;
 
+chrome.tabs.query({
+    active: true,
+    lastFocusedWindow: true
+}, function(tabs) {
+    tabUrl = tabs[0].url;
+    // Do something with tab
+});
 document.addEventListener("DOMContentLoaded", function() {
 	getValues();
-	addPowerListener();
+	addPowerListener2();
 	addRedditListener();
 	addInputListener();
 });
@@ -10,13 +18,13 @@ document.addEventListener("DOMContentLoaded", function() {
 function getValues()
 {
 	//Load the value of the power button
-	chrome.storage.local.get({enabled: true}, function(items) {
+	chrome.storage.local.get({disabledSites: {}}, function(items) {
 		var powerButton = document.getElementById("powerButton");
-		if(items.enabled){
-			power = true;
-		}else{
+		if(items.disabledSites[tabUrl]){
 			power = false;
 			powerButton.style.color = "gray";
+		}else{
+			power = true;
 		}
 	});
 	
@@ -55,14 +63,47 @@ function addPowerListener()
 		{
 			powerButton.style.color = "gray";
 			power = false;
-			chrome.storage.local.set({'enabled': false}, null);
+			//chrome.storage.local.set({'enabled': false}, null);
+			chrome.storage.local.set({'listOperation': 1}, null);
 		}
 		else
 		{
 			powerButton.style.color = "#0ff000";
 			power = true;
-			chrome.storage.local.set({'enabled': true}, null);
+			//chrome.storage.local.set({'enabled': true}, null);
+			chrome.storage.local.set({'listOperation': -1}, null);
 		}
+	});
+}
+
+function addPowerListener2()
+{
+	var powerButton = document.getElementById('powerButton');
+	powerButton.addEventListener("click", function()
+	{
+		chrome.storage.local.get({disabledSites: {}}, function(items){		
+			displayRefreshNotification();
+			if(power)
+			{
+				powerButton.style.color = "gray";
+				power = false;
+				//chrome.storage.local.set({'enabled': false}, null);
+				items.disabledSites[tabUrl] = true;
+				//chrome.storage.local.set({'listOperation': 1}, null);
+			}
+			else
+			{
+				powerButton.style.color = "#0ff000";
+				power = true;
+				//chrome.storage.local.set({'enabled': true}, null);
+				if(items.disabledSites[tabUrl])
+				{
+					delete items.disabledSites[tabUrl];
+				}
+				//chrome.storage.local.set({'listOperation': -1}, null);
+			}
+			chrome.storage.local.set({"disabledSites": items.disabledSites}, null);
+		});
 	});
 }
 
